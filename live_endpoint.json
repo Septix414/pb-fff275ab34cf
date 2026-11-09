@@ -1,10 +1,9 @@
 {
-  "transport": "ntfy-sse",
   "topic": "paperbot-1hz-e391e68791a8de56",
   "hosts": [
     "https://ntfy.adminforge.de",
     "https://ntfy.envs.net",
     "https://ntfy.sh"
   ],
-  "updated_at": 1794260762.4217424
+  "spa": "spa-v3-ios"
 }
