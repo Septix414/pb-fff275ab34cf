@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8">
+<meta name="pb-spa" content="spa-v5-team1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#EDE4D6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Team · Spielgeld Paper-Bot</title>
+<style>
+:root{
+  --bg:#F5EFE6; --bg2:#EDE4D6; --card:#FBF8F3; --card2:#F3EDE3;
+  --bd:#E2D6C5; --bd2:#D4C4AE;
+  --tx:#2B2520; --mut:#8A7F72; --mut2:#A89B8C;
+  --accent:#B08D57; --accent-soft:#E8D9BE;
+  --g:#3F7D58; --g-bg:#E4EFE8; --r:#B5483D; --r-bg:#F5E4E1;
+  --shadow:0 1px 2px rgba(43,37,32,.04), 0 8px 24px rgba(43,37,32,.06);
+  --radius:16px;
+  --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:var(--sans);font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;min-height:100%}
+body{padding:18px 24px calc(22px + env(safe-area-inset-bottom));max-width:1440px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.banner{background:linear-gradient(180deg,#F7F0E4,#F0E6D4);color:var(--tx);
+  border:1px solid var(--bd2);border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;
+  box-shadow:var(--shadow)}
+.banner .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent);background:var(--accent-soft);
+  border-radius:999px;padding:3px 10px;margin-bottom:6px}
+.banner h1{font-family:var(--serif);font-size:24px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.banner small{display:block;color:var(--mut);font-size:12.5px;line-height:1.4}
+.reconnect{display:none;background:var(--r-bg);border:1px solid #E0B4AE;color:var(--r);
+  border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:600}
+.status{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12.5px;margin:0 0 14px}
+.dot{width:8px;height:8px;border-radius:50%;background:#C4A574;flex-shrink:0;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+body.live .dot{background:var(--g)}
+body.stale .dot{background:var(--r);animation:none}
+.tabs{display:flex;gap:6px;background:var(--bg2);border:1px solid var(--bd);border-radius:999px;padding:4px;margin-bottom:16px}
+.tab{flex:1;border:0;background:transparent;color:var(--mut);font:inherit;font-weight:600;font-size:13.5px;
+  padding:10px 12px;border-radius:999px;cursor:pointer;min-height:44px;text-decoration:none;
+  display:flex;align-items:center;justify-content:center}
+.tab[aria-selected="true"]{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.hero .k{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.hero .l{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.eqbig{font-family:var(--serif);font-size:34px;font-weight:600;margin-top:4px;letter-spacing:-.02em}
+.eqeur{font-size:18px;font-weight:700;margin-top:2px}
+.meta{color:var(--mut);font-size:12px;margin-top:4px}
+.g{color:var(--g)}.r{color:var(--r)}.mut{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{font-family:var(--serif);font-size:17px;font-weight:600;margin:0;padding:14px 16px 8px;letter-spacing:-.01em}
+.chartbox{padding:4px 12px 14px}
+#eqchart{width:100%;height:280px;display:block}
+.cols{display:grid;grid-template-columns:1.55fr .95fr;gap:14px;align-items:start}
+#diagram{width:100%;height:auto;display:block;background:var(--card2)}
+.node-label{font-size:12px;font-weight:700;fill:var(--tx);font-family:var(--sans)}
+.node-sub{font-size:10px;fill:var(--mut);font-family:var(--sans)}
+.feed{max-height:620px;overflow:auto}
+.feed .row{padding:10px 14px;border-top:1px solid var(--bd)}
+.feed .row:first-child{border-top:0}
+.feed .who{font-weight:700;font-size:13.5px}
+.feed .when{color:var(--mut);font-size:11px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;
+  background:var(--card2);border:1px solid var(--bd);color:var(--mut);vertical-align:middle}
+.pill.on{color:var(--r);background:var(--r-bg);border-color:#E0B4AE}
+.pill.off{color:var(--g);background:var(--g-bg);border-color:#B7D0C0}
+.footer{color:var(--mut);font-size:11.5px;margin-top:18px;text-align:center;padding-bottom:8px}
+.empty{padding:18px 14px;color:var(--mut);text-align:center}
+@media (max-width:860px){
+  body{padding:14px}
+  .hero{grid-template-columns:1fr}
+  .eqbig{font-size:28px}
+  .cols{grid-template-columns:1fr}
+  #eqchart{height:220px}
+}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+</style></head><body>
+<div class="banner">
+  <span class="tag">Spielgeld · Paper</span>
+  <h1>Was das Team gerade macht</h1>
+  <small>Nur Simulation. Keine echten Trades. Live ist AUS. Equity in SOL und EUR · Update ~1s.</small>
+</div>
+<div id="reconnect" class="reconnect">Verbindung wird wiederhergestellt… <span id="reconnectAge"></span></div>
+<div class="status" id="statusline"><span class="dot" id="cdot"></span><span class="age num">Verbinde…</span></div>
+<nav class="tabs" aria-label="Ansichten">
+  <a class="tab" href="./">Portfolio</a>
+  <a class="tab" href="./">Wallets</a>
+  <a class="tab" href="./">Schwarm</a>
+  <a class="tab" href="team.html" aria-selected="true">Team</a>
+</nav>
+
+<div class="hero">
+  <div class="k">
+    <div class="l">Equity</div>
+    <div id="eqsol" class="eqbig num mut">–</div>
+    <div id="eqeur" class="eqeur num mut">–</div>
+  </div>
+  <div class="k">
+    <div class="l">PnL seit 50 SOL</div>
+    <div id="pnlsol" class="eqbig num mut">–</div>
+    <div id="pnleur" class="eqeur num mut">–</div>
+    <div id="pnlpct" class="meta">–</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Equity seit Reset</h2>
+  <div class="chartbox"><canvas id="eqchart" width="1400" height="280"></canvas></div>
+</div>
+
+<div class="cols">
+  <div class="card">
+    <h2>Live-Diagramm</h2>
+    <svg id="diagram" viewBox="0 0 1100 640" role="img" aria-label="Team-Diagramm"></svg>
+  </div>
+  <div class="card">
+    <h2>Was das Team gerade macht</h2>
+    <div class="feed" id="activity"><div class="empty">Verbinde…</div></div>
+  </div>
+</div>
+<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v5-team1</div>
+
+<script>
+const GIST = "ab4b2694299bcf128f9c6144209acc45";
+const NTFY = "paperbot-1hz-e391e68791a8de56";
+const HOSTS = ["https://ntfy.adminforge.de", "https://ntfy.envs.net", "https://ntfy.mzte.de", "https://ntfy.sh"];
+const HOSTS_FALLBACK = [`https://gist.githubusercontent.com/Septix414/${GIST}/raw/`];
+const LS_KEY = "pb_team_snap_v1";
+const f=(v,n=4)=>v==null||v===''||Number.isNaN(+v)?'–':(+v).toFixed(n);
+const cl=v=>v>0?'g':(v<0?'r':'');
+const t=ts=>{try{return new Date(ts*1000).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return '–'}};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ageHuman(sec){
+  if(sec==null||!isFinite(sec)) return '–';
+  sec=Math.max(0,sec);
+  if(sec<90) return Math.round(sec)+'s';
+  if(sec<3600) return Math.round(sec/60)+' min';
+  return (sec/3600).toFixed(1)+' h';
+}
+
+function expand(s){
+  if(!s) return s;
+  if(s.v!=null && s.v>=1 && s.v<=5){
+    const out=Object.assign({}, s);
+    if(s.sw) out.swarm=s.sw;
+    if(s.br) out.brake={on:!!s.br.on, peak:s.br.pk, size_half:!!s.br.hf, lockout:!!s.br.lo};
+    if(s.eur!=null) out.sol_eur=s.eur;
+    if(s.sk!=null && s.skip_n==null) out.skip_n=s.sk;
+    return out;
+  }
+  return s;
+}
+
+let lastTs=0, lastPayload=null, srcLab='…', esOk=false;
+let lastHeavy={eq_hist:[], agents:[], team_feed:[], recent_decisions:[], swarm_heavy:{}};
+let pollTimer=null, hostIdx=0, es=null, connecting=false, lastMsgAt=0;
+let eqHist=[];
+let seenEv=new Set();
+
+function ageText(ts){
+  if(!ts) return 'Verbinde…';
+  const a=Math.max(0, Math.round(Date.now()/1000 - ts));
+  const clock=new Date(ts*1000).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return `Stand ${clock} (Europe/Berlin) · vor ${a}s · ${srcLab}`;
+}
+function setStatus(text, mode){
+  const el=document.querySelector('#statusline .age');
+  if(el) el.textContent=text;
+  document.body.classList.toggle('stale', mode==='stale');
+  document.body.classList.toggle('live', mode==='live');
+  const banner=document.getElementById('reconnect');
+  if(banner){
+    if(mode==='stale' && lastTs){
+      banner.style.display='block';
+      const a=Math.max(0, Math.round(Date.now()/1000 - lastTs));
+      const ra=document.getElementById('reconnectAge');
+      if(ra) ra.textContent='letzter Stand vor '+a+'s';
+    } else banner.style.display='none';
+  }
+}
+function cacheSave(raw){ try{ localStorage.setItem(LS_KEY, JSON.stringify({ts:Date.now(), payload:raw})); }catch(e){} }
+function cacheLoad(){
+  try{
+    const j=JSON.parse(localStorage.getItem(LS_KEY)||'null');
+    if(j && j.payload && j.payload.ts) return j.payload;
+  }catch(e){}
+  return null;
+}
+
+const NODES={
+  scout:{x:200,y:90,title:'Scout'},
+  analyst:{x:550,y:90,title:'Analyst'},
+  stratege:{x:900,y:90,title:'Stratege'},
+  launch:{x:200,y:250,title:'Launch-Feed'},
+  swarm:{x:550,y:250,title:'Schwarm'},
+  trench:{x:900,y:250,title:'Trench-Wallets'},
+  risiko:{x:200,y:400,title:'Risiko'},
+  filters:{x:550,y:400,title:'Risk-Filter'},
+  engine:{x:900,y:400,title:'Trade-Engine'},
+  sniper:{x:200,y:550,title:'Sniper'},
+  portfolio:{x:550,y:550,title:'Portfolio'}
+};
+const EDGES=[
+  ['scout','launch'],['scout','swarm'],['scout','trench'],
+  ['analyst','swarm'],['analyst','scout'],
+  ['stratege','swarm'],['stratege','risiko'],
+  ['sniper','swarm'],['launch','swarm'],['trench','engine'],
+  ['swarm','filters'],['filters','engine'],
+  ['risiko','filters'],['risiko','engine'],['engine','portfolio'],['swarm','engine']
+];
+const EV_PATH={
+  launch:['launch','swarm'],
+  trench:['trench','engine'],
+  intent:['swarm','filters'],
+  reject:['filters','risiko'],
+  buy:['engine','portfolio'],
+  sell:['engine','portfolio']
+};
+
+function drawDiagramSkeleton(){
+  const svg=document.getElementById('diagram');
+  let lines='';
+  EDGES.forEach(([a,b])=>{
+    const A=NODES[a], B=NODES[b];
+    lines += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#D4C4AE" stroke-width="1.6"/>`;
+  });
+  let ns='';
+  Object.keys(NODES).forEach(id=>{
+    const n=NODES[id];
+    ns += `<g id="n-${id}">
+      <rect x="${n.x-78}" y="${n.y-34}" width="156" height="68" rx="16" fill="#FBF8F3" stroke="#D4C4AE" stroke-width="1.6"/>
+      <text class="node-label" x="${n.x}" y="${n.y-6}" text-anchor="middle">${n.title}</text>
+      <text class="node-sub" id="sub-${id}" x="${n.x}" y="${n.y+14}" text-anchor="middle">–</text>
+    </g>`;
+  });
+  svg.innerHTML = lines + ns + '<g id="pulses"></g>';
+}
+drawDiagramSkeleton();
+
+function setNodeSub(id, text, brake){
+  const el=document.getElementById('sub-'+id);
+  if(el) el.textContent=text||'–';
+  const g=document.getElementById('n-'+id);
+  if(!g) return;
+  const rect=g.querySelector('rect');
+  if(!rect) return;
+  if(brake){ rect.setAttribute('stroke','#B5483D'); rect.setAttribute('fill','#F5E4E1'); }
+  else { rect.setAttribute('stroke','#D4C4AE'); rect.setAttribute('fill','#FBF8F3'); }
+}
+
+function pulse(fromId, toId, color){
+  const A=NODES[fromId], B=NODES[toId];
+  if(!A||!B) return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg=document.getElementById('pulses');
+  const NS='http://www.w3.org/2000/svg';
+  const c=document.createElementNS(NS,'circle');
+  c.setAttribute('r','5.5');
+  c.setAttribute('fill', color||'#B08D57');
+  const anim=document.createElementNS(NS,'animateMotion');
+  anim.setAttribute('dur','0.85s');
+  anim.setAttribute('path', `M${A.x},${A.y} L${B.x},${B.y}`);
+  anim.setAttribute('fill','freeze');
+  c.appendChild(anim);
+  svg.appendChild(c);
+  try{ anim.beginElement(); }catch(e){}
+  setTimeout(()=>{ try{ c.remove(); }catch(e){} }, 950);
+}
+
+function handleEvents(list){
+  (list||[]).forEach(e=>{
+    if(!e || e.ts==null) return;
+    const key=e.t+'|'+e.ts;
+    if(seenEv.has(key)) return;
+    seenEv.add(key);
+    if(seenEv.size>200){
+      seenEv=new Set(Array.from(seenEv).slice(-80));
+    }
+    const age=Date.now()/1000 - e.ts;
+    if(age>20) return;
+    const pair=EV_PATH[e.t];
+    if(pair) pulse(pair[0], pair[1], e.t==='sell'||e.t==='reject' ? '#B5483D' : '#B08D57');
+  });
+}
+
+function mergeHist(hist){
+  if(!hist || !hist.length) return;
+  const map=new Map();
+  hist.forEach(p=>{ if(p && p.ts) map.set(Math.round(p.ts), p); });
+  eqHist.forEach(p=>{
+    const k=Math.round(p.ts);
+    if(!map.has(k)) map.set(k,p);
+  });
+  eqHist=Array.from(map.values()).sort((a,b)=>a.ts-b.ts);
+}
+function addLivePoint(s){
+  if(s.equity_sol==null || !s.ts) return;
+  const pt={
+    ts:s.ts, eq:+s.equity_sol,
+    eur:s.sol_eur||s.eur||null,
+    br:(s.brake && s.brake.on)?1:0,
+    pk:s.brake && s.brake.peak
+  };
+  const last=eqHist[eqHist.length-1];
+  if(!last || s.ts-last.ts>=0.8){
+    eqHist.push(pt);
+    if(eqHist.length>2200) eqHist=eqHist.slice(-1900);
+  } else {
+    last.eq=pt.eq; last.ts=pt.ts;
+    if(pt.eur) last.eur=pt.eur;
+    last.br=pt.br; if(pt.pk) last.pk=pt.pk;
+  }
+}
+
+function drawChart(s){
+  const canvas=document.getElementById('eqchart');
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const cssW=canvas.clientWidth||1400;
+  const cssH=canvas.clientHeight||280;
+  canvas.width=Math.round(cssW*dpr);
+  canvas.height=Math.round(cssH*dpr);
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  const pad={l:48,r:18,t:16,b:28};
+  const w=cssW-pad.l-pad.r, h=cssH-pad.t-pad.b;
+  const pts=eqHist.slice();
+  if(!pts.length && s && s.equity_sol!=null){
+    pts.push({ts:s.ts||Date.now()/1000, eq:+s.equity_sol, br:(s.brake&&s.brake.on)?1:0, pk:s.brake&&s.brake.peak});
+  }
+  const start=s && s.start_balance_sol!=null ? +s.start_balance_sol : 50;
+  const peak=(s && s.brake && s.brake.peak)!=null ? +s.brake.peak : (pts.reduce((m,p)=>Math.max(m, p.pk||p.eq||0), start));
+  const brakeY=peak*0.8;
+  let mn=Math.min(start, brakeY, ...pts.map(p=>p.eq));
+  let mx=Math.max(start, peak, ...pts.map(p=>p.eq));
+  const span=Math.max(0.8, mx-mn);
+  mn-=span*0.08; mx+=span*0.08;
+  const t0=pts.length?pts[0].ts: (s&&s.ts)||0;
+  const t1=pts.length?pts[pts.length-1].ts: t0+1;
+  const x=ts=> pad.l + ((ts-t0)/Math.max(1e-6,t1-t0))*w;
+  const y=v=> pad.t + (1-((v-mn)/(mx-mn)))*h;
+
+  ctx.fillStyle='#FBF8F3';
+  ctx.fillRect(0,0,cssW,cssH);
+
+  // shade brake periods
+  let i=0;
+  while(i<pts.length){
+    if(!pts[i].br){ i++; continue; }
+    let j=i;
+    while(j<pts.length && pts[j].br) j++;
+    ctx.fillStyle='rgba(181,72,61,0.10)';
+    ctx.fillRect(x(pts[i].ts), pad.t, Math.max(2, x(pts[Math.max(i,j-1)].ts)-x(pts[i].ts)+4), h);
+    i=j;
+  }
+
+  // grid + start + brake
+  ctx.strokeStyle='#E2D6C5'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+h); ctx.lineTo(pad.l+w,pad.t+h); ctx.stroke();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle='#B08D57';
+  ctx.beginPath(); ctx.moveTo(pad.l,y(start)); ctx.lineTo(pad.l+w,y(start)); ctx.stroke();
+  ctx.strokeStyle='#B5483D';
+  ctx.beginPath(); ctx.moveTo(pad.l,y(brakeY)); ctx.lineTo(pad.l+w,y(brakeY)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle='#8A7F72'; ctx.font='11px -apple-system,BlinkMacSystemFont,sans-serif';
+  ctx.fillText(start.toFixed(1)+' Start', pad.l+6, y(start)-4);
+  ctx.fillStyle='#B5483D';
+  ctx.fillText(brakeY.toFixed(2)+' Bremse', pad.l+6, y(brakeY)-4);
+  ctx.fillStyle='#8A7F72';
+  ctx.fillText(mx.toFixed(1), 8, y(mx)+4);
+  ctx.fillText(mn.toFixed(1), 8, y(mn)+4);
+
+  if(pts.length){
+    ctx.beginPath();
+    pts.forEach((p,idx)=>{
+      const X=x(p.ts), Y=y(p.eq);
+      if(idx===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    });
+    ctx.strokeStyle='#2B2520'; ctx.lineWidth=1.8; ctx.stroke();
+  }
+}
+
+function renderHeader(s){
+  const eur=s.sol_eur||s.eur||null;
+  const eq=s.equity_sol;
+  const start=s.start_balance_sol!=null?s.start_balance_sol:50;
+  const pnl=s.total_pnl_sol!=null?s.total_pnl_sol:(eq!=null?eq-start:null);
+  const pct= (pnl!=null && start) ? (pnl/start*100) : null;
+  const eqEl=document.getElementById('eqsol');
+  const eqE=document.getElementById('eqeur');
+  const pEl=document.getElementById('pnlsol');
+  const pE=document.getElementById('pnleur');
+  const pP=document.getElementById('pnlpct');
+  eqEl.textContent = eq==null?'–':f(eq,3)+' SOL';
+  eqEl.className='eqbig num '+cl(pnl);
+  eqE.textContent = (eq==null||eur==null)?'–':'€ '+f(eq*eur,2);
+  eqE.className='eqeur num '+cl(pnl);
+  pEl.textContent = pnl==null?'–':((pnl>=0?'+':'')+f(pnl,3)+' SOL');
+  pEl.className='eqbig num '+cl(pnl);
+  pE.textContent = (pnl==null||eur==null)?'–':((pnl>=0?'+':'')+'€ '+f(Math.abs(pnl*eur),2));
+  pE.className='eqeur num '+cl(pnl);
+  pP.textContent = pct==null?'–':((pct>=0?'+':'')+pct.toFixed(2)+'%  ·  SOL/EUR '+ (eur==null?'–':f(eur,2)));
+}
+
+function agentById(agents, id){
+  return (agents||[]).find(a=>a && a.id===id) || null;
+}
+function agentLine(a){
+  if(!a) return '–';
+  const st=(a.status||'').toString();
+  return st.length>42 ? st.slice(0,40)+'…' : (st||'–');
+}
+
+function renderDiagram(s){
+  const sw=s.swarm||{};
+  const sh=s.swarm_heavy||lastHeavy.swarm_heavy||{};
+  const br=s.brake||{};
+  const agents=s.agents&&s.agents.length?s.agents:lastHeavy.agents||[];
+  setNodeSub('scout', agentLine(agentById(agents,'scout')));
+  setNodeSub('analyst', agentLine(agentById(agents,'analyst')));
+  setNodeSub('stratege', agentLine(agentById(agents,'stratege')));
+  setNodeSub('sniper', agentLine(agentById(agents,'sniper')));
+  setNodeSub('risiko', br.on ? 'BREMSE AN' : agentLine(agentById(agents,'risiko')), !!br.on);
+  const n=sw.n||sh.n||250, a=sw.a!=null?sw.a:(sh.a!=null?sh.a:'–');
+  const paused=(typeof n==='number' && typeof a==='number') ? (n-a) : '–';
+  setNodeSub('swarm', `${a} aktiv / ${paused} pause`);
+  const copyN=s.copy_n!=null?s.copy_n:27;
+  const watchN=s.watch_n!=null?s.watch_n:7;
+  setNodeSub('trench', `${copyN} copy · ${watchN} watch`);
+  const lpm=sw.lpm!=null?sw.lpm:sh.lpm;
+  setNodeSub('launch', (lpm==null?'–':(+lpm).toFixed(1))+' creates/min');
+  setNodeSub('filters', (s.skip_n!=null?s.skip_n:'–')+' abgelehnt');
+  const opens=(s.open_positions||[]).length;
+  setNodeSub('engine', opens+' offen'+(br.on?' · BREMSE':''), !!br.on);
+  setNodeSub('portfolio', s.equity_sol==null?'–':f(s.equity_sol,2)+' SOL');
+}
+
+function renderActivity(s){
+  const agents=s.agents&&s.agents.length?s.agents:lastHeavy.agents||[];
+  const feed=s.team_feed&&s.team_feed.length?s.team_feed:lastHeavy.team_feed||[];
+  const decs=s.recent_decisions&&s.recent_decisions.length?s.recent_decisions:lastHeavy.recent_decisions||[];
+  const now=Date.now()/1000;
+  let html='';
+  agents.forEach(a=>{
+    html += `<div class="row"><div class="who">${esc((a.id||'').charAt(0).toUpperCase()+(a.id||'').slice(1))}
+      <span class="pill ${a.id==='risiko'&&s.brake&&s.brake.on?'on':'off'}">${esc(a.id==='risiko'&&s.brake&&s.brake.on?'Bremse an':(a.status?'aktiv':'–'))}</span></div>
+      <div class="meta">${esc(a.status||'–')}</div>
+      <div class="meta">${esc(a.last_proposal||'')}</div>
+      <div class="when">${a.age_s!=null?('vor '+ageHuman(a.age_s)):(a.updated_at||'')}</div></div>`;
+  });
+  const evs=[...feed].reverse();
+  evs.slice(0,20).forEach(e=>{
+    html += `<div class="row"><div class="who">${esc(e.event||e.type||'feed')} <span class="pill">${esc(e.type||'')}</span></div>
+      <div class="meta">${esc(JSON.stringify(e).slice(0,180))}</div>
+      <div class="when">${t(e.ts)} · vor ${ageHuman(now-(e.ts||now))}</div></div>`;
+  });
+  decs.slice(0,8).forEach(d=>{
+    html += `<div class="row"><div class="who">${esc(d.action||'event')} · ${esc(d.symbol|| (d.mint||'').slice(0,6) || 'engine')}</div>
+      <div class="meta">${esc((d.reason||d.stage||'').toString().slice(0,140))}</div>
+      <div class="when">${t(d.ts)}</div></div>`;
+  });
+  document.getElementById('activity').innerHTML = html || '<div class="empty">Noch keine Team-Events</div>';
+}
+
+function render(raw){
+  if(!raw) return;
+  const s=expand(raw);
+  if(!s || !s.ts) return;
+  if(s.ts < lastTs - 2) return;
+  lastTs=s.ts; lastMsgAt=Date.now()/1000; lastPayload=s;
+  cacheSave(raw);
+  if(s.eq_hist && s.eq_hist.length){ lastHeavy.eq_hist=s.eq_hist; mergeHist(s.eq_hist); }
+  if(s.agents && s.agents.length) lastHeavy.agents=s.agents;
+  if(s.team_feed && s.team_feed.length) lastHeavy.team_feed=s.team_feed;
+  if(s.recent_decisions && s.recent_decisions.length) lastHeavy.recent_decisions=s.recent_decisions;
+  if(s.swarm_heavy && Object.keys(s.swarm_heavy).length) lastHeavy.swarm_heavy=s.swarm_heavy;
+  addLivePoint(s);
+  handleEvents(s.ev||[]);
+  const fresh=(Date.now()/1000 - lastTs)<=5;
+  setStatus(ageText(lastTs), fresh?'live':'stale');
+  renderHeader(s);
+  renderDiagram(s);
+  renderActivity(s);
+  drawChart(s);
+}
+
+function handleNtfyPayload(msg){
+  try{
+    if(msg.attachment && msg.attachment.url){
+      fetch(msg.attachment.url, {cache:'no-store', mode:'cors'})
+        .then(r=>r.json()).then(s=>{ srcLab='Live'; render(s); })
+        .catch(function(){});
+      return;
+    }
+    if(typeof msg.message === 'string' && msg.message.startsWith('{')){
+      srcLab='Live';
+      render(JSON.parse(msg.message));
+    }
+  }catch(e){}
+}
+async function pollNtfyOnce(){
+  const order = HOSTS.slice(hostIdx).concat(HOSTS.slice(0, hostIdx));
+  for (const base of order){
+    try{
+      const host = base.replace(/\/$/,'');
+      const r = await fetch(host + '/' + NTFY + '/json?poll=1&since=5s', {cache:'no-store', mode:'cors'});
+      if(!r.ok) continue;
+      const txt = await r.text();
+      const lines = txt.trim().split(String.fromCharCode(10)).filter(Boolean);
+      for (let i=lines.length-1;i>=0;i--){
+        try{
+          const m=JSON.parse(lines[i]);
+          if(m.event==='message'){ handleNtfyPayload(m); return true; }
+        }catch(e){}
+      }
+    }catch(e){}
+  }
+  return false;
+}
+function startPollFallback(){
+  if(pollTimer) return;
+  srcLab='Poll';
+  pollTimer=setInterval(function(){ pollNtfyOnce(); }, 2000);
+  pollNtfyOnce();
+}
+function stopPollFallback(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+}
+function closeEs(){
+  if(es){ try{ es.close(); }catch(e){} es=null; esOk=false; }
+}
+function connectNtfy(forceNext){
+  if(!NTFY || NTFY.indexOf('paperbot-')!==0){ startPollFallback(); return; }
+  if(forceNext) hostIdx=(hostIdx+1)%Math.max(HOSTS.length,1);
+  closeEs();
+  connecting=true;
+  const base=(HOSTS[hostIdx] || HOSTS[0] || '').replace(/\/$/,'');
+  if(!base){ startPollFallback(); connecting=false; return; }
+  srcLab='SSE…';
+  let got=false;
+  try{ es=new EventSource(base + '/' + NTFY + '/sse'); }catch(e){ connecting=false; startPollFallback(); return; }
+  const onMsg=function(ev){
+    try{
+      got=true; esOk=true; connecting=false; stopPollFallback();
+      srcLab='Live/'+base.replace('https://','').split('/')[0].replace('ntfy.','');
+      handleNtfyPayload(JSON.parse(ev.data));
+    }catch(e){}
+  };
+  es.onmessage=onMsg;
+  es.addEventListener('message', onMsg);
+  es.onerror=function(){ esOk=false; connecting=false; startPollFallback(); };
+  setTimeout(function(){
+    if(!got){ closeEs(); hostIdx=(hostIdx+1)%Math.max(HOSTS.length,1); connectNtfy(false); startPollFallback(); }
+  }, 4000);
+}
+async function fetchGistFallback(){
+  for (const h of HOSTS_FALLBACK){
+    try{
+      const r=await fetch(h + 'live.json?t=' + Date.now(), {cache:'no-store', mode:'cors'});
+      if(!r.ok) continue;
+      const s=await r.json();
+      srcLab='Fallback';
+      render(s);
+      return;
+    }catch(e){}
+  }
+}
+function resume(){ startPollFallback(); connectNtfy(false); fetchGistFallback(); }
+(function(){
+  const cached=cacheLoad();
+  if(cached){ render(cached); setStatus(ageText(lastTs),'stale'); }
+  else setStatus('Verbinde…','stale');
+})();
+resume();
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') resume(); });
+window.addEventListener('pageshow', function(){ resume(); });
+window.addEventListener('online', function(){ resume(); });
+window.addEventListener('resize', function(){ if(lastPayload) drawChart(lastPayload); });
+setInterval(function(){
+  const now=Date.now()/1000;
+  if(lastTs){
+    const fresh=(now-lastTs)<=5;
+    setStatus(ageText(lastTs), fresh?'live':'stale');
+  }
+  const silence=now-(lastMsgAt||lastTs||0);
+  if(silence>4){
+    startPollFallback();
+    if(es){ closeEs(); connectNtfy(true); }
+    else if(!connecting){ connectNtfy(true); }
+  }
+}, 1000);
+setInterval(function(){ fetchGistFallback(); }, 10000);
+</script>
+</body></html>

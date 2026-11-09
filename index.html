@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="de"><head>
 <meta charset="utf-8">
-<meta name="pb-spa" content="spa-v5-swarm1">
+<meta name="pb-spa" content="spa-v5-team1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#EDE4D6">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,6 +46,7 @@ body.stale .dot{background:var(--r);animation:none}
 .tab{flex:1;border:0;background:transparent;color:var(--mut);font:inherit;font-weight:600;font-size:13.5px;
   padding:10px 12px;border-radius:999px;cursor:pointer;min-height:44px;transition:background .18s,color .18s}
 .tab[aria-selected="true"]{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
+a.tab{text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;color:var(--mut)}
 .panel{display:none}.panel.active{display:block}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .k{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
@@ -107,6 +108,7 @@ h2 .count{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--mut
   <button class="tab" role="tab" id="tab-portfolio" aria-selected="true" aria-controls="panel-portfolio">Portfolio</button>
   <button class="tab" role="tab" id="tab-wallets" aria-selected="false" aria-controls="panel-wallets">Wallets</button>
   <button class="tab" role="tab" id="tab-swarm" aria-selected="false" aria-controls="panel-swarm">Schwarm</button>
+  <a class="tab" id="tab-team" href="team.html">Team</a>
 </nav>
 
 <section id="panel-portfolio" class="panel active" role="tabpanel" aria-labelledby="tab-portfolio">
@@ -158,7 +160,7 @@ h2 .count{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--mut
   <div class="card" id="teamFeed"><div class="empty">–</div></div>
 </section>
 
-<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v5-swarm1</div>
+<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v5-team1</div>
 <script>
 const GIST = "ab4b2694299bcf128f9c6144209acc45";
 const NTFY = "paperbot-1hz-e391e68791a8de56";
@@ -197,7 +199,7 @@ function tokenHead(sym, mint){
 
 function expand(s){
   if(!s) return s;
-  if(s.v!==1 && s.v!==2 && s.v!==3 && s.v!==4) return s;
+  if(s.v!==1 && s.v!==2 && s.v!==3 && s.v!==4 && s.v!==5) return s;
   const mapPos=p=>({
     symbol:p.s, mint:p.m, whales:p.wh?[p.wh]:[], sol_in:p.in, initial_sol_in:p.iin,
     entry_price_usd:p.ep, now_price:p.np, chg_pct:p.pct, pnl_sol:p.pnl, tp_stage:p.tp,
@@ -223,6 +225,7 @@ function expand(s){
   if(s.ws) out.wallet_stats=(s.ws||[]).map(mapWs);
   if(s.sw) out.swarm=s.sw;
   if(s.br) out.brake={on:!!s.br.on, peak:s.br.pk, size_half:!!s.br.hf, lockout:!!s.br.lo};
+  if(s.eur!=null) out.sol_eur=s.eur;
   return out;
 }
 
