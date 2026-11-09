@@ -1,65 +1,144 @@
 <!doctype html>
 <html lang="de"><head>
 <meta charset="utf-8">
-<meta name="pb-spa" content="spa-v3-ios">
+<meta name="pb-spa" content="spa-v4-beige2">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#EDE4D6">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- spa-v3-ios -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Spielgeld · Paper-Bot Live</title>
 <style>
-:root{--bg:#0d1117;--card:#161b22;--bd:#30363d;--tx:#e6edf3;--mut:#8b949e;--g:#3fb950;--r:#f85149;--a:#58a6ff}
+:root{
+  --bg:#F5EFE6; --bg2:#EDE4D6; --card:#FBF8F3; --card2:#F3EDE3;
+  --bd:#E2D6C5; --bd2:#D4C4AE;
+  --tx:#2B2520; --mut:#8A7F72; --mut2:#A89B8C;
+  --accent:#B08D57; --accent-soft:#E8D9BE;
+  --g:#3F7D58; --g-bg:#E4EFE8; --r:#B5483D; --r-bg:#F5E4E1;
+  --shadow:0 1px 2px rgba(43,37,32,.04), 0 8px 24px rgba(43,37,32,.06);
+  --radius:16px;
+  --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:12px;font-size:14px;line-height:1.35}
-.banner{background:#3d2a00;color:#ffdf5d;border:1px solid #9e6a03;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:12px}
-.banner small{display:block;font-weight:400;margin-top:4px;opacity:.95}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.k{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
-.k .l{color:var(--mut);font-size:11px;text-transform:uppercase}
-.k .v{font-size:18px;font-weight:700;margin-top:2px}
-.g{color:var(--g)}.r{color:var(--r)}.mut{color:var(--mut)}
-h1{font-size:18px;margin:0 0 4px} h2{font-size:13px;color:var(--mut);text-transform:uppercase;margin:18px 0 8px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:10px}
-.row{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd)}
-.row:last-child{border-bottom:0}
-.sym{font-weight:700}.meta{color:var(--mut);font-size:11px;margin-top:2px}
-.pct{font-weight:700;font-size:15px;white-space:nowrap;text-align:right}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#21262d;border:1px solid var(--bd)}
-.pill.off{color:var(--g);border-color:#238636}.pill.on{color:var(--r);border-color:#da3633}
-.pill.tp{color:#d2a8ff;border-color:#8957e5}
-.pill.stale{color:#d29922;border-color:#9e6a03}
-.footer{color:var(--mut);font-size:11px;margin-top:16px;text-align:center}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d29922;margin-right:6px;animation:pulse 1.2s infinite}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--tx);
+  font-family:var(--sans);font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;min-height:100%}
+body{padding:14px 14px calc(18px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.banner{background:linear-gradient(180deg,#F7F0E4,#F0E6D4);color:var(--tx);
+  border:1px solid var(--bd2);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;
+  box-shadow:var(--shadow)}
+.banner .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent);background:var(--accent-soft);
+  border-radius:999px;padding:3px 10px;margin-bottom:6px}
+.banner h1{font-family:var(--serif);font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.banner small{display:block;color:var(--mut);font-size:12.5px;line-height:1.4}
+.reconnect{display:none;background:var(--r-bg);border:1px solid #E0B4AE;color:var(--r);
+  border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:600}
+.status{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12.5px;margin:0 0 14px}
+.dot{width:8px;height:8px;border-radius:50%;background:#C4A574;flex-shrink:0;animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.live .dot{background:var(--g)}
-.stale .dot{background:var(--r);animation:none}
-.age{font-variant-numeric:tabular-nums}
+body.live .dot{background:var(--g)}
+body.stale .dot{background:var(--r);animation:none}
+.tabs{display:flex;gap:6px;background:var(--bg2);border:1px solid var(--bd);border-radius:999px;padding:4px;margin-bottom:14px}
+.tab{flex:1;border:0;background:transparent;color:var(--mut);font:inherit;font-weight:600;font-size:13.5px;
+  padding:10px 12px;border-radius:999px;cursor:pointer;min-height:44px;transition:background .18s,color .18s}
+.tab[aria-selected="true"]{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
+.panel{display:none}.panel.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.k{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+.k .l{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.k .v{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.k .meta{color:var(--mut);font-size:11.5px;margin-top:3px}
+.g{color:var(--g)}.r{color:var(--r)}.mut{color:var(--mut)}
+h2{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--tx);margin:18px 0 10px;letter-spacing:-.01em}
+h2 .count{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--mut);margin-left:6px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--bd)}
+.row:last-child{border-bottom:0}
+.sym{font-weight:700;font-size:15px}
+.sym a{color:inherit}
+.meta{color:var(--mut);font-size:11.5px;margin-top:3px;line-height:1.35}
+.pct{font-weight:700;font-size:16px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;
+  background:var(--card2);border:1px solid var(--bd);color:var(--mut);vertical-align:middle}
+.pill.off{color:var(--g);background:var(--g-bg);border-color:#B7D0C0}
+.pill.on{color:var(--r);background:var(--r-bg);border-color:#E0B4AE}
+.pill.tp{color:#7A5C2E;background:var(--accent-soft);border-color:#D2BC91}
+.pill.stale{color:#8A6A2A;background:#F3E8CE;border-color:#E0C98A}
+.pill.tier{color:var(--accent)}
+.addr{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}
+.addr code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--tx);
+  background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:2px 7px}
+.iconbtn{appearance:none;border:1px solid var(--bd);background:var(--card);color:var(--mut);
+  border-radius:8px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;min-width:32px}
+.iconbtn:active,.iconbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.iconbtn svg{width:14px;height:14px;display:block}
+.gmgn{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--accent);
+  border:1px solid var(--bd2);background:var(--accent-soft);border-radius:8px;padding:4px 8px;
+  display:inline-flex;align-items:center;min-height:28px}
+.toolbar{display:flex;gap:8px;align-items:center;margin:0 0 12px;flex-wrap:wrap}
+.toggle{appearance:none;border:1px solid var(--bd2);background:var(--card);color:var(--mut);
+  border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:40px}
+.toggle.on{background:var(--accent-soft);color:#6E5428;border-color:#D2BC91}
+.wcard{padding:14px;border-bottom:1px solid var(--bd)}
+.wcard:last-child{border-bottom:0}
+.wtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.wstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.wstats .s{background:var(--card2);border:1px solid var(--bd);border-radius:12px;padding:8px 10px}
+.wstats .s .l{font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.wstats .s .v{font-size:14px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.footer{color:var(--mut);font-size:11.5px;margin-top:18px;text-align:center;padding-bottom:8px}
+.empty{padding:18px 14px;color:var(--mut);text-align:center}
+@media (max-width:380px){.grid{grid-template-columns:1fr 1fr}.k .v{font-size:17px}.wstats{grid-template-columns:1fr 1fr}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}.tab{transition:none}}
 </style></head><body>
-<div class="banner">SPIELGELD / PAPER-MODUS<small>Nur Simulation. Keine echten Trades. Live ist AUS. Update ~1s · Staged TP: 50% @ +40%, 25% @ +100%, Rest Trailing 20%.</small></div>
-<h1>Solana Whale Copy-Bot</h1>
-<div id="reconnect" class="banner" style="display:none;background:#3d1f1f;border-color:#da3633;color:#ffb4b0">Verbindung wird wiederhergestellt… <span id="reconnectAge"></span></div>
-<div class="mut" id="statusline" style="margin-bottom:12px"><span class="dot" id="cdot"></span><span class="age">Verbinde…</span></div>
-<div class="grid" id="kpi">
-  <div class="k"><div class="l">Equity</div><div class="v mut">Verbinde…</div></div>
-  <div class="k"><div class="l">PnL</div><div class="v mut">Verbinde…</div></div>
+<div class="banner">
+  <span class="tag">Spielgeld · Paper</span>
+  <h1>Solana Whale Copy-Bot</h1>
+  <small>Nur Simulation. Keine echten Trades. Live ist AUS. Update ~1s · TP gestaffelt.</small>
 </div>
-<h2>Live (echtes SOL)</h2>
-<div class="grid" id="lv">
-  <div class="k"><div class="l">Status</div><div class="v"><span class="pill off">AUS</span></div></div>
-  <div class="k"><div class="l">Guthaben</div><div class="v mut">–</div></div>
-</div>
-<h2>Offene Positionen <span id="noc" class="mut"></span></h2>
-<div class="card" id="open"><div class="row mut">Verbinde…</div></div>
-<h2>Take-Profit / Teilverkäufe</h2>
-<div class="card" id="tp"><div class="row mut">–</div></div>
-<h2>Geschlossene Trades</h2>
-<div class="card" id="closed"><div class="row mut">–</div></div>
-<h2>Letzte Entscheidungen</h2>
-<div class="card" id="dec"><div class="row mut">–</div></div>
-<h2>Latenz</h2>
-<div class="grid" id="lat"></div>
-<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages</div>
+<div id="reconnect" class="reconnect">Verbindung wird wiederhergestellt… <span id="reconnectAge"></span></div>
+<div class="status" id="statusline"><span class="dot" id="cdot"></span><span class="age num">Verbinde…</span></div>
+<nav class="tabs" role="tablist" aria-label="Ansichten">
+  <button class="tab" role="tab" id="tab-portfolio" aria-selected="true" aria-controls="panel-portfolio">Portfolio</button>
+  <button class="tab" role="tab" id="tab-wallets" aria-selected="false" aria-controls="panel-wallets">Wallets</button>
+</nav>
+
+<section id="panel-portfolio" class="panel active" role="tabpanel" aria-labelledby="tab-portfolio">
+  <div class="grid" id="kpi">
+    <div class="k"><div class="l">Equity</div><div class="v mut">Verbinde…</div></div>
+    <div class="k"><div class="l">PnL</div><div class="v mut">Verbinde…</div></div>
+  </div>
+  <h2>Live <span class="count">(echtes SOL)</span></h2>
+  <div class="grid" id="lv">
+    <div class="k"><div class="l">Status</div><div class="v"><span class="pill off">AUS</span></div></div>
+    <div class="k"><div class="l">Guthaben</div><div class="v mut">–</div></div>
+  </div>
+  <h2>Offene Positionen <span id="noc" class="count"></span></h2>
+  <div class="card" id="open"><div class="empty">Verbinde…</div></div>
+  <h2>Take-Profit / Teilverkäufe</h2>
+  <div class="card" id="tp"><div class="empty">–</div></div>
+  <h2>Geschlossene Trades</h2>
+  <div class="card" id="closed"><div class="empty">–</div></div>
+  <h2>Letzte Entscheidungen</h2>
+  <div class="card" id="dec"><div class="empty">–</div></div>
+  <h2>Latenz</h2>
+  <div class="grid" id="lat"></div>
+</section>
+
+<section id="panel-wallets" class="panel" role="tabpanel" aria-labelledby="tab-wallets">
+  <div class="toolbar">
+    <button type="button" class="toggle" id="filterCopied" aria-pressed="false">Nur kopierte</button>
+    <span class="mut" id="walletCount" style="font-size:12.5px"></span>
+  </div>
+  <div class="card" id="wallets"><div class="empty">Warte auf Wallet-Daten…</div></div>
+</section>
+
+<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v4-beige2</div>
 <script>
 const GIST = "ab4b2694299bcf128f9c6144209acc45";
 const NTFY = "paperbot-1hz-e391e68791a8de56";
@@ -67,39 +146,69 @@ const HOSTS = ["https://ntfy.adminforge.de", "https://ntfy.envs.net", "https://n
 const HOSTS_FALLBACK = [
   `https://gist.githubusercontent.com/Septix414/${GIST}/raw/`,
 ];
-const LS_KEY = "pb_live_snap_v1";
+const LS_KEY = "pb_live_snap_v4";
+const ICONS = {
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+};
 const f=(v,n=4)=>v==null||v===''||Number.isNaN(+v)?'–':(+v).toFixed(n);
 const cl=v=>v>0?'g':(v<0?'r':'');
 const t=ts=>{try{return new Date(ts*1000).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return '–'}};
 const pct=v=>v==null?'–':((+v>=0?'+':'')+(+v).toFixed(2)+'%');
-function kpi(el, items){ el.innerHTML=items.map(([l,v,c])=>`<div class="k"><div class="l">${l}</div><div class="v ${c||''}">${v}</div></div>`).join(''); }
-function rows(el, html){ el.innerHTML = html || '<div class="row mut">Keine</div>'; }
+const shortAddr=a=>{if(!a)return '–'; if(a.length<12)return a; return a.slice(0,6)+'…'+a.slice(-4);};
+const gmgnToken=m=>m?`https://gmgn.ai/sol/token/${m}`:'#';
+const gmgnWallet=w=>w?`https://gmgn.ai/sol/address/${w}`:'#';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function kpi(el, items){ el.innerHTML=items.map(([l,v,c])=>`<div class="k"><div class="l">${l}</div><div class="v num ${c||''}">${v}</div></div>`).join(''); }
+function rows(el, html){ el.innerHTML = html || '<div class="empty">Keine</div>'; }
+function addrRow(addr){
+  if(!addr) return '';
+  const a=esc(addr);
+  return `<div class="addr"><code title="${a}">${esc(shortAddr(addr))}</code>
+    <button type="button" class="iconbtn" data-copy="${a}" aria-label="Adresse kopieren">${ICONS.copy}</button>
+    <a class="gmgn" href="${gmgnWallet(addr)}" target="_blank" rel="noopener noreferrer">GMGN</a></div>`;
+}
+function tokenHead(sym, mint){
+  const s=esc(sym||'?');
+  if(!mint) return `<span class="sym">${s}</span>`;
+  return `<span class="sym"><a href="${gmgnToken(mint)}" target="_blank" rel="noopener noreferrer">${s}</a></span>
+    <a class="gmgn" href="${gmgnToken(mint)}" target="_blank" rel="noopener noreferrer" style="margin-left:6px">GMGN</a>`;
+}
 
 function expand(s){
   if(!s) return s;
-  if(s.v!==1 && s.v!==2) return s;
+  if(s.v!==1 && s.v!==2 && s.v!==3) return s;
   const mapPos=p=>({
-    symbol:p.s, sol_in:p.in, initial_sol_in:p.iin, entry_price_usd:p.ep, now_price:p.np,
-    chg_pct:p.pct, pnl_sol:p.pnl, tp_stage:p.tp, size_tier:p.tier, opened_at:p.at,
-    realized_pnl_sol:p.rp, price_age_s:p.age, price_ok:p.ok
+    symbol:p.s, mint:p.m, whales:p.wh?[p.wh]:[], sol_in:p.in, initial_sol_in:p.iin,
+    entry_price_usd:p.ep, now_price:p.np, chg_pct:p.pct, pnl_sol:p.pnl, tp_stage:p.tp,
+    size_tier:p.tier, opened_at:p.at, realized_pnl_sol:p.rp, price_age_s:p.age, price_ok:p.ok
   });
-  const mapClosed=p=>({symbol:p.s, pnl_sol:p.pnl, pnl_pct:p.pct, exit_reason:p.why, closed_at:p.at});
-  const mapTp=p=>({symbol:p.s, ts:p.at, reason:p.why, pnl_sol:p.pnl, fraction:p.fr, chg_pct:p.pct});
-  const mapDec=d=>({ts:d.at, symbol:d.s, stage:d.st, action:d.a, reason:d.r});
+  const mapClosed=p=>({symbol:p.s, mint:p.m, whales:p.wh?[p.wh]:[], pnl_sol:p.pnl, pnl_pct:p.pct, exit_reason:p.why, closed_at:p.at});
+  const mapTp=p=>({symbol:p.s, mint:p.m, ts:p.at, reason:p.why, pnl_sol:p.pnl, fraction:p.fr, chg_pct:p.pct});
+  const mapDec=d=>({ts:d.at, symbol:d.s, mint:d.m, stage:d.st, action:d.a, reason:d.r});
+  const mapWs=w=>({
+    address:w.a, source:w.src, tier:w.tier, win_rate:w.wr,
+    copied_trades:w.n, wins:w.w, losses:w.l, open_trades:w.o,
+    our_pnl_sol:w.pnl, last_copy_at:w.at
+  });
   const rt=s.realtime||{};
-  return Object.assign({}, s, {
+  const out=Object.assign({}, s, {
     open_positions:(s.open_positions||[]).map(mapPos),
     closed_positions:(s.closed_positions||[]).map(mapClosed),
     partial_exits:(s.partial_exits||[]).map(mapTp),
     recent_decisions:(s.recent_decisions||[]).map(mapDec),
     realtime:{subscribed:rt.sub, credits:rt.cred},
   });
+  if(s.ws) out.wallet_stats=(s.ws||[]).map(mapWs);
+  return out;
 }
 
 let lastTs = 0, lastPayload=null, srcLab='…', esOk=false;
-let lastHeavy = {closed_positions:[], partial_exits:[], recent_decisions:[], latency:{}, realtime:{}};
+let lastHeavy = {closed_positions:[], partial_exits:[], recent_decisions:[], latency:{}, realtime:{}, wallet_stats:[]};
 let pollTimer=null, hostIdx=0, es=null, connecting=false;
 let lastMsgAt = 0;
+let onlyCopied = false;
+let currentTab = 'portfolio';
 
 function ageText(ts){
   if(!ts) return 'Verbinde…';
@@ -134,6 +243,70 @@ function cacheLoad(){
   }catch(e){}
   return null;
 }
+
+function mergeWalletStats(incoming){
+  if(!incoming || !incoming.length) return;
+  // Prefer longer lists (full elite) over slim copied-only
+  if(!lastHeavy.wallet_stats || !lastHeavy.wallet_stats.length){
+    lastHeavy.wallet_stats = incoming;
+    return;
+  }
+  if(incoming.length >= lastHeavy.wallet_stats.length){
+    lastHeavy.wallet_stats = incoming;
+    return;
+  }
+  // Merge copied fields into existing by address
+  const map={};
+  lastHeavy.wallet_stats.forEach(w=>{ if(w.address) map[w.address]=Object.assign({},w); });
+  incoming.forEach(w=>{
+    if(!w.address) return;
+    map[w.address]=Object.assign({}, map[w.address]||{}, w);
+  });
+  lastHeavy.wallet_stats=Object.values(map).sort((a,b)=>{
+    const ac=a.copied_trades||0, bc=b.copied_trades||0;
+    const ap=ac? (a.our_pnl_sol||0) : -1e9;
+    const bp=bc? (b.our_pnl_sol||0) : -1e9;
+    return (bp-ap) || (bc-ac) || ((b.win_rate||0)-(a.win_rate||0));
+  });
+}
+
+function renderWallets(){
+  const all = lastHeavy.wallet_stats || [];
+  let list = all.slice();
+  if(onlyCopied) list = list.filter(w => (w.copied_trades||0) > 0);
+  const el=document.getElementById('wallets');
+  const count=document.getElementById('walletCount');
+  if(count) count.textContent = list.length + ' von ' + all.length;
+  if(!list.length){
+    rows(el, '<div class="empty">'+(all.length?'Keine kopierten Wallets':'Noch keine Wallet-Daten — warte auf Heavy-Update (~10s) oder lade neu')+'</div>');
+    return;
+  }
+  rows(el, list.map(w=>{
+    const wr = w.win_rate==null ? '–' : ((+w.win_rate*100).toFixed(0)+'%');
+    const pnl = w.our_pnl_sol||0;
+    const src = esc((w.source||'on-chain') + (w.tier?(' · '+w.tier):''));
+    return `<div class="wcard">
+      <div class="wtop">
+        <div>
+          <div class="sym">${esc(shortAddr(w.address))} ${(w.copied_trades?`<span class="pill tier">kopiert</span>`:'')}</div>
+          <div class="meta">${src} · Whale-WR ${wr}${(w.whale_trades!=null?(' · '+w.whale_trades+' Trades'):'')}</div>
+          ${addrRow(w.address)}
+        </div>
+        <div style="text-align:right">
+          <div class="pct ${cl(pnl)}">${(pnl>=0?'+':'')+f(pnl)} SOL</div>
+          <div class="meta">unser PnL</div>
+        </div>
+      </div>
+      <div class="wstats">
+        <div class="s"><div class="l">Kopien</div><div class="v num">${w.copied_trades||0}${(w.open_trades?(' · '+w.open_trades+' offen'):'')}</div></div>
+        <div class="s"><div class="l">Gewonnen</div><div class="v num g">${w.wins||0}</div></div>
+        <div class="s"><div class="l">Verloren</div><div class="v num r">${w.losses||0}</div></div>
+      </div>
+      <div class="meta" style="margin-top:8px">Letzte Kopie: ${w.last_copy_at?t(w.last_copy_at):'–'}</div>
+    </div>`;
+  }).join(''));
+}
+
 function render(raw){
   const s = expand(raw);
   if(!s || !s.ts) return;
@@ -151,6 +324,7 @@ function render(raw){
   if(s.recent_decisions && s.recent_decisions.length) lastHeavy.recent_decisions = s.recent_decisions;
   if(s.latency && Object.keys(s.latency).length) lastHeavy.latency = s.latency;
   if(s.realtime && (s.realtime.subscribed!=null || s.realtime.sub!=null)) lastHeavy.realtime = s.realtime;
+  if(s.wallet_stats && s.wallet_stats.length) mergeWalletStats(s.wallet_stats);
   const fresh = (Date.now()/1000 - lastTs) <= 5;
   setStatus(ageText(lastTs), fresh?'live':'stale');
   const pnl = s.total_pnl_sol||0, real=s.realized_pnl_sol||0, unrl=s.unrealized_pnl_sol||0;
@@ -167,34 +341,42 @@ function render(raw){
   ]);
   const L = s.live || {};
   document.getElementById('lv').innerHTML = `
-    <div class="k"><div class="l">Status</div><div class="v"><span class="pill ${L.armed?'on':'off'}">${L.armed?'SCHARF':'AUS'}</span></div><div class="meta">${L.reason||''}</div></div>
-    <div class="k"><div class="l">Guthaben</div><div class="v">${L.sol_balance==null?'–':f(L.sol_balance)+' SOL'}</div><div class="meta">${L.public_key?(L.public_key.slice(0,4)+'…'+L.public_key.slice(-4)):'–'}</div></div>`;
+    <div class="k"><div class="l">Status</div><div class="v"><span class="pill ${L.armed?'on':'off'}">${L.armed?'SCHARF':'AUS'}</span></div><div class="meta">${esc(L.reason||'')}</div></div>
+    <div class="k"><div class="l">Guthaben</div><div class="v num">${L.sol_balance==null?'–':f(L.sol_balance)+' SOL'}</div><div class="meta">${L.public_key?esc(shortAddr(L.public_key)):'–'}</div></div>`;
   const opn = s.open_positions||[];
   document.getElementById('noc').textContent = '('+opn.length+')';
   rows(document.getElementById('open'), opn.map(p=>{
     const age = p.price_age_s;
     const stale = age!=null && age>3;
     const pnlS = p.pnl_sol;
-    return `<div class="row"><div><div class="sym">${p.symbol||'?'} ${p.tp_stage?`<span class="pill tp">TP${p.tp_stage}</span>`:''}${stale?' <span class="pill stale">Preis alt</span>':''}</div>
-    <div class="meta">${f(p.sol_in,4)} / ${f(p.initial_sol_in,4)} SOL · ${p.size_tier||'–'} · $${f(p.entry_price_usd,8)} → $${f(p.now_price,8)}</div>
-    <div class="meta">eröffnet ${t(p.opened_at)} · Preisalter ${age==null?'–':(age.toFixed?age.toFixed(1):age)+'s'}${(p.realized_pnl_sol?(' · TP realisiert '+(p.realized_pnl_sol>=0?'+':'')+f(p.realized_pnl_sol)+' SOL'):'')}</div></div>
+    const whale = (p.whales&&p.whales[0]) || null;
+    return `<div class="row"><div style="min-width:0">
+      <div>${tokenHead(p.symbol, p.mint)} ${p.tp_stage?`<span class="pill tp">TP${p.tp_stage}</span>`:''}${stale?' <span class="pill stale">Preis alt</span>':''}</div>
+      <div class="meta num">${f(p.sol_in,4)} / ${f(p.initial_sol_in,4)} SOL · ${esc(p.size_tier||'–')} · $${f(p.entry_price_usd,8)} → $${f(p.now_price,8)}</div>
+      <div class="meta">eröffnet ${t(p.opened_at)} · Preisalter ${age==null?'–':(age.toFixed?age.toFixed(1):age)+'s'}${(p.realized_pnl_sol?(' · TP realisiert '+(p.realized_pnl_sol>=0?'+':'')+f(p.realized_pnl_sol)+' SOL'):'')}</div>
+      ${whale?addrRow(whale):''}
+    </div>
     <div><div class="pct ${cl(p.chg_pct)}">${p.chg_pct==null?'–':pct(p.chg_pct)}</div>
-    <div class="meta ${cl(pnlS)}" style="text-align:right">${pnlS==null?'–':((pnlS>=0?'+':'')+f(pnlS)+' SOL')}</div></div></div>`;
+    <div class="meta num ${cl(pnlS)}" style="text-align:right">${pnlS==null?'–':((pnlS>=0?'+':'')+f(pnlS)+' SOL')}</div></div></div>`;
   }).join(''));
   rows(document.getElementById('tp'), (s.partial_exits&&s.partial_exits.length?s.partial_exits:lastHeavy.partial_exits||[]).map(p=>`
-    <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
-    <div class="meta">${t(p.ts)} · ${p.reason||''} · ${(p.fraction!=null?(p.fraction*100).toFixed(0)+'%':'')}</div></div>
+    <div class="row"><div style="min-width:0"><div>${tokenHead(p.symbol, p.mint)}</div>
+    <div class="meta">${t(p.ts)} · ${esc(p.reason||'')} · ${(p.fraction!=null?(p.fraction*100).toFixed(0)+'%':'')}</div></div>
     <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
     <div class="meta ${cl(p.chg_pct)}">${pct(p.chg_pct)}</div></div></div>`).join(''));
-  rows(document.getElementById('closed'), (s.closed_positions&&s.closed_positions.length?s.closed_positions:lastHeavy.closed_positions||[]).map(p=>`
-    <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
-    <div class="meta">${t(p.closed_at)} · ${p.exit_reason||''}</div></div>
+  rows(document.getElementById('closed'), (s.closed_positions&&s.closed_positions.length?s.closed_positions:lastHeavy.closed_positions||[]).map(p=>{
+    const whale=(p.whales&&p.whales[0])||null;
+    return `<div class="row"><div style="min-width:0"><div>${tokenHead(p.symbol, p.mint)}</div>
+    <div class="meta">${t(p.closed_at)} · ${esc(p.exit_reason||'')}</div>
+    ${whale?addrRow(whale):''}
+    </div>
     <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
-    <div class="meta ${cl(p.pnl_pct)}">${pct(p.pnl_pct)}</div></div></div>`).join(''));
+    <div class="meta ${cl(p.pnl_pct)}">${pct(p.pnl_pct)}</div></div></div>`;
+  }).join(''));
   rows(document.getElementById('dec'), (s.recent_decisions&&s.recent_decisions.length?s.recent_decisions:lastHeavy.recent_decisions||[]).map(d=>`
-    <div class="row"><div><div class="sym">${d.symbol||'?'}</div>
-    <div class="meta">${t(d.ts)} · ${d.stage} · ${d.action}</div>
-    <div class="meta">${(d.reason||'').slice(0,100)}</div></div></div>`).join(''));
+    <div class="row"><div style="min-width:0"><div>${tokenHead(d.symbol, d.mint)}</div>
+    <div class="meta">${t(d.ts)} · ${esc(d.stage)} · ${esc(d.action)}</div>
+    <div class="meta">${esc((d.reason||'').slice(0,100))}</div></div></div>`).join(''));
   const la=s.latency&&Object.keys(s.latency).length?s.latency:lastHeavy.latency||{};
   const rt=s.realtime&&(s.realtime.subscribed!=null||s.realtime.sub!=null)?s.realtime:lastHeavy.realtime||{};
   kpi(document.getElementById('lat'), [
@@ -203,7 +385,9 @@ function render(raw){
     ['WS Wallets', rt.subscribed!=null?rt.subscribed:(rt.sub!=null?rt.sub:'–'), ''],
     ['Snapshot', s.sms!=null?(f(s.sms,0)+' ms'):(s.snapshot_ms!=null?(f(s.snapshot_ms,0)+' ms'):'–'), ''],
   ]);
+  if(currentTab==='wallets') renderWallets();
 }
+
 function handleNtfyPayload(msg){
   try{
     if(msg.attachment && msg.attachment.url){
@@ -226,7 +410,7 @@ async function pollNtfyOnce(){
       const r = await fetch(host + '/' + NTFY + '/json?poll=1&since=5s', {cache:'no-store', mode:'cors'});
       if(!r.ok) continue;
       const txt = await r.text();
-      const lines = txt.trim().split('\n').filter(Boolean);
+      const lines = txt.trim().split(String.fromCharCode(10)).filter(Boolean);
       for (let i=lines.length-1;i>=0;i--){
         try{
           const m=JSON.parse(lines[i]);
@@ -296,6 +480,40 @@ function resume(){
   startPollFallback();
   connectNtfy(false);
 }
+function setTab(name){
+  currentTab = name;
+  document.getElementById('tab-portfolio').setAttribute('aria-selected', name==='portfolio'?'true':'false');
+  document.getElementById('tab-wallets').setAttribute('aria-selected', name==='wallets'?'true':'false');
+  document.getElementById('panel-portfolio').classList.toggle('active', name==='portfolio');
+  document.getElementById('panel-wallets').classList.toggle('active', name==='wallets');
+  if(name==='wallets'){
+    renderWallets();
+    fetchGistFallback();
+  }
+}
+document.getElementById('tab-portfolio').addEventListener('click', ()=>setTab('portfolio'));
+document.getElementById('tab-wallets').addEventListener('click', ()=>setTab('wallets'));
+document.getElementById('filterCopied').addEventListener('click', function(){
+  onlyCopied = !onlyCopied;
+  this.classList.toggle('on', onlyCopied);
+  this.setAttribute('aria-pressed', onlyCopied?'true':'false');
+  renderWallets();
+});
+document.body.addEventListener('click', function(ev){
+  const btn = ev.target.closest('[data-copy]');
+  if(!btn) return;
+  const v = btn.getAttribute('data-copy');
+  if(!v) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(v).catch(function(){});
+  } else {
+    const ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);
+  }
+  btn.style.borderColor = 'var(--accent)';
+  setTimeout(()=>{ btn.style.borderColor=''; }, 600);
+});
 (function(){
   const cached = cacheLoad();
   if(cached){
@@ -326,8 +544,8 @@ setInterval(function(){
   }
 }, 1000);
 setInterval(function(){
-  if(!lastTs || (Date.now()/1000 - lastTs) > 10) fetchGistFallback();
-}, 20000);
-
+  // Heavy fields (wallets/closed) live in gist live.json — refresh often
+  fetchGistFallback();
+}, 10000);
 </script>
 </body></html>
