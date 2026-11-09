@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Spielgeld · Paper-Bot Live</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--bd:#30363d;--tx:#e6edf3;--mut:#8b949e;--g:#3fb950;--r:#f85149;--a:#58a6ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:12px;font-size:14px;line-height:1.35}
+.banner{background:#3d2a00;color:#ffdf5d;border:1px solid #9e6a03;border-radius:10px;padding:10px 12px;font-weight:600;margin-bottom:12px}
+.banner small{display:block;font-weight:400;margin-top:4px;opacity:.95}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.k{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.k .l{color:var(--mut);font-size:11px;text-transform:uppercase}
+.k .v{font-size:18px;font-weight:700;margin-top:2px}
+.g{color:var(--g)}.r{color:var(--r)}.mut{color:var(--mut)}
+h1{font-size:18px;margin:0 0 4px} h2{font-size:13px;color:var(--mut);text-transform:uppercase;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd)}
+.row:last-child{border-bottom:0}
+.sym{font-weight:700}.meta{color:var(--mut);font-size:11px;margin-top:2px}
+.pct{font-weight:700;font-size:15px;white-space:nowrap}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#21262d;border:1px solid var(--bd)}
+.pill.off{color:var(--g);border-color:#238636}.pill.on{color:var(--r);border-color:#da3633}
+.pill.tp{color:#d2a8ff;border-color:#8957e5}
+.footer{color:var(--mut);font-size:11px;margin-top:16px;text-align:center}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d29922;margin-right:6px;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.live .dot{background:var(--g)}
+.stale .dot{background:var(--r);animation:none}
+.age{font-variant-numeric:tabular-nums}
+#noscript{background:#3d1117;color:#ffb4b0;border:1px solid #da3633;border-radius:10px;padding:10px 12px;margin-bottom:12px}
+</style></head><body>
+<div class="banner">SPIELGELD / PAPER-MODUS<small>Nur Simulation. Keine echten Trades. Live ist AUS. Staged TP: 50% @ +40%, 25% @ +100%, Rest Trailing 20%.</small></div>
+<noscript><div id="noscript">JavaScript ist aus. Das Live-Dashboard braucht JS für die Zahlen.</div></noscript>
+<h1>Solana Whale Copy-Bot</h1>
+<div class="mut" id="statusline" style="margin-bottom:12px"><span class="dot"></span><span class="age">Verbinde…</span></div>
+<div class="grid" id="kpi">
+  <div class="k"><div class="l">Equity</div><div class="v mut">Verbinde…</div></div>
+  <div class="k"><div class="l">PnL</div><div class="v mut">Verbinde…</div></div>
+  <div class="k"><div class="l">Cash frei</div><div class="v mut">–</div></div>
+  <div class="k"><div class="l">Offen</div><div class="v mut">–</div></div>
+</div>
+<h2>Live (echtes SOL)</h2>
+<div class="grid" id="lv">
+  <div class="k"><div class="l">Status</div><div class="v"><span class="pill off">AUS</span></div></div>
+  <div class="k"><div class="l">Guthaben</div><div class="v mut">–</div></div>
+</div>
+<h2>Offene Positionen <span id="noc" class="mut"></span></h2>
+<div class="card" id="open"><div class="row mut">Verbinde…</div></div>
+<h2>Take-Profit / Teilverkäufe</h2>
+<div class="card" id="tp"><div class="row mut">–</div></div>
+<h2>Geschlossene Trades</h2>
+<div class="card" id="closed"><div class="row mut">–</div></div>
+<h2>Letzte Entscheidungen</h2>
+<div class="card" id="dec"><div class="row mut">–</div></div>
+<h2>Latenz</h2>
+<div class="grid" id="lat"></div>
+<div class="footer">Read-only · Spielgeld · Push via ntfy · GitHub Pages</div>
+<script>
+const GIST = "ab4b2694299bcf128f9c6144209acc45";
+const NTFY = "paperbot-d5500391f47a3dd56032ed9125917bb2";
+const HOSTS = [
+  `https://gist.githubusercontent.com/Septix414/${GIST}/raw/`,
+];
+const f=(v,n=4)=>v==null||v===''||Number.isNaN(+v)?'–':(+v).toFixed(n);
+const cl=v=>v>0?'g':(v<0?'r':'');
+const t=ts=>{try{return new Date(ts*1000).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return '–'}};
+const pct=v=>v==null?'–':((+v>=0?'+':'')+(+v).toFixed(2)+'%');
+function kpi(el, items){ el.innerHTML=items.map(([l,v,c])=>`<div class="k"><div class="l">${l}</div><div class="v ${c||''}">${v}</div></div>`).join(''); }
+function rows(el, html){ el.innerHTML = html || '<div class="row mut">Keine</div>'; }
+
+function expand(s){
+  if(!s || s.v!==1) return s;
+  const mapPos=p=>({
+    symbol:p.s, sol_in:p.in, initial_sol_in:p.iin, entry_price_usd:p.ep, now_price:p.np,
+    chg_pct:p.pct, tp_stage:p.tp, size_tier:p.tier, opened_at:p.at, realized_pnl_sol:p.rp
+  });
+  const mapClosed=p=>({symbol:p.s, pnl_sol:p.pnl, pnl_pct:p.pct, exit_reason:p.why, closed_at:p.at});
+  const mapTp=p=>({symbol:p.s, ts:p.at, reason:p.why, pnl_sol:p.pnl, fraction:p.fr, chg_pct:p.pct});
+  const mapDec=d=>({ts:d.at, symbol:d.s, stage:d.st, action:d.a, reason:d.r});
+  const rt=s.realtime||{};
+  return Object.assign({}, s, {
+    open_positions:(s.open_positions||[]).map(mapPos),
+    closed_positions:(s.closed_positions||[]).map(mapClosed),
+    partial_exits:(s.partial_exits||[]).map(mapTp),
+    recent_decisions:(s.recent_decisions||[]).map(mapDec),
+    realtime:{subscribed:rt.sub, credits:rt.cred},
+  });
+}
+
+let lastTs = 0, src='…', esOk=false, pollTimer=null, es=null;
+function ageText(ts){
+  if(!ts) return 'Verbinde…';
+  const a = Math.max(0, Math.round(Date.now()/1000 - ts));
+  const clock = new Date(ts*1000).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return `Stand ${clock} (Europe/Berlin) · vor ${a}s · ${src}`;
+}
+function setStatus(text, mode){
+  const el=document.querySelector('#statusline .age');
+  if(el) el.textContent = text;
+  document.body.classList.toggle('stale', mode==='stale');
+  document.body.classList.toggle('live', mode==='live');
+}
+function render(raw){
+  const s = expand(raw);
+  if(!s || !s.ts) return;
+  if(lastTs && s.ts < lastTs - 0.5) return;
+  lastTs = s.ts;
+  const fresh = (Date.now()/1000 - lastTs) <= 8;
+  setStatus(ageText(lastTs), fresh?'live':'stale');
+  const pnl = s.total_pnl_sol||0, real=s.realized_pnl_sol||0, unrl=s.unrealized_pnl_sol||0;
+  const wr = s.win_rate;
+  kpi(document.getElementById('kpi'), [
+    ['Equity', f(s.equity_sol)+' SOL', cl(pnl)],
+    ['vs Start ('+f(s.start_balance_sol,1)+')', (pnl>=0?'+':'')+f(pnl)+' SOL', cl(pnl)],
+    ['Realisiert', (real>=0?'+':'')+f(real)+' SOL', cl(real)],
+    ['Unrealisiert', (unrl>=0?'+':'')+f(unrl)+' SOL', cl(unrl)],
+    ['Cash frei', f(s.cash_sol)+' SOL', ''],
+    ['Winrate', wr==null?'–':((wr*100).toFixed(0)+'% ('+(s.wins||0)+'/'+(s.trades_closed||0)+')'), ''],
+    ['Offen', (s.open_positions||[]).length, ''],
+    ['Geschlossen', s.trades_closed||0, ''],
+  ]);
+  const L = s.live || {};
+  document.getElementById('lv').innerHTML = `
+    <div class="k"><div class="l">Status</div><div class="v"><span class="pill ${L.armed?'on':'off'}">${L.armed?'SCHARF':'AUS'}</span></div><div class="meta">${L.reason||''}</div></div>
+    <div class="k"><div class="l">Guthaben</div><div class="v">${L.sol_balance==null?'–':f(L.sol_balance)+' SOL'}</div><div class="meta">${L.public_key?(L.public_key.slice(0,4)+'…'+L.public_key.slice(-4)):'–'}</div></div>`;
+  const opn = s.open_positions||[];
+  document.getElementById('noc').textContent = '('+opn.length+')';
+  rows(document.getElementById('open'), opn.map(p=>`
+    <div class="row"><div><div class="sym">${p.symbol||'?'} ${p.tp_stage?`<span class="pill tp">TP${p.tp_stage}</span>`:''}</div>
+    <div class="meta">${f(p.sol_in,4)} / ${f(p.initial_sol_in,4)} SOL · ${p.size_tier||'–'} · $${f(p.entry_price_usd,8)} → $${f(p.now_price,8)}</div>
+    <div class="meta">eröffnet ${t(p.opened_at)}${(p.realized_pnl_sol?(' · TP realisiert '+(p.realized_pnl_sol>=0?'+':'')+f(p.realized_pnl_sol)+' SOL'):'')}</div></div>
+    <div class="pct ${cl(p.chg_pct)}">${p.chg_pct==null?'–':pct(p.chg_pct)}</div></div>`).join(''));
+  rows(document.getElementById('tp'), (s.partial_exits||[]).map(p=>`
+    <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
+    <div class="meta">${t(p.ts)} · ${p.reason||''} · ${(p.fraction!=null?(p.fraction*100).toFixed(0)+'%':'')}</div></div>
+    <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
+    <div class="meta ${cl(p.chg_pct)}">${pct(p.chg_pct)}</div></div></div>`).join(''));
+  rows(document.getElementById('closed'), (s.closed_positions||[]).map(p=>`
+    <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
+    <div class="meta">${t(p.closed_at)} · ${p.exit_reason||''}</div></div>
+    <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
+    <div class="meta ${cl(p.pnl_pct)}">${pct(p.pnl_pct)}</div></div></div>`).join(''));
+  rows(document.getElementById('dec'), (s.recent_decisions||[]).map(d=>`
+    <div class="row"><div><div class="sym">${d.symbol||'?'}</div>
+    <div class="meta">${t(d.ts)} · ${d.stage} · ${d.action}</div>
+    <div class="meta">${(d.reason||'').slice(0,100)}</div></div></div>`).join(''));
+  const la=s.latency||{}, rt=s.realtime||{}, cred=rt.credits||{};
+  kpi(document.getElementById('lat'), [
+    ['Erkennung Median', la.detect_median_s==null?'–':f(la.detect_median_s,1)+'s', ''],
+    ['Fill Median', la.fill_median_s==null?'–':f(la.fill_median_s,1)+'s', ''],
+    ['WS Wallets', rt.subscribed!=null?rt.subscribed:'–', ''],
+    ['Helius Credits', cred.total_credits!=null?(cred.total_credits+' / '+cred.budget):'–', ''],
+  ]);
+}
+function handleNtfyPayload(msg){
+  try{
+    if(msg.attachment && msg.attachment.url){
+      fetch(msg.attachment.url, {cache:'no-store', mode:'cors'})
+        .then(r=>r.json()).then(s=>{ src='Live'; render(s); })
+        .catch(function(){});
+      return;
+    }
+    if(typeof msg.message === 'string' && msg.message.startsWith('{')){
+      src='Live';
+      render(JSON.parse(msg.message));
+    }
+  }catch(e){}
+}
+async function pollNtfyOnce(){
+  try{
+    const r = await fetch('https://ntfy.sh/' + NTFY + '/json?poll=1&since=10s', {cache:'no-store', mode:'cors'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt = await r.text();
+    const lines = txt.trim().split('\n').filter(Boolean);
+    for (let i=lines.length-1;i>=0;i--){
+      try{
+        const m=JSON.parse(lines[i]);
+        if(m.event==='message'){ handleNtfyPayload(m); return true; }
+      }catch(e){}
+    }
+  }catch(e){}
+  return false;
+}
+function startPollFallback(){
+  if(pollTimer) return;
+  src = src==='Live' ? 'Poll' : 'Poll';
+  setStatus(lastTs ? ageText(lastTs) : 'Verbinde… (Poll)', lastTs?'stale':'stale');
+  pollTimer = setInterval(function(){ pollNtfyOnce(); }, 2000);
+  pollNtfyOnce();
+}
+function stopPollFallback(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+}
+function connectNtfy(){
+  if(!NTFY || NTFY.indexOf('paperbot-')!==0){ startPollFallback(); return; }
+  // Immediate poll so UI fills even before SSE
+  pollNtfyOnce().then(function(ok){ if(!ok && !lastTs) setStatus('Verbinde…', 'stale'); });
+  let es;
+  try{
+    es = new EventSource('https://ntfy.sh/' + NTFY + '/sse');
+  }catch(e){ startPollFallback(); return; }
+  let gotMsg=false;
+  const failTimer=setTimeout(function(){ if(!gotMsg) startPollFallback(); }, 4000);
+  es.onmessage = function(ev){
+    try{
+      gotMsg=true; esOk=true; stopPollFallback();
+      handleNtfyPayload(JSON.parse(ev.data));
+    }catch(e){}
+  };
+  es.addEventListener('message', function(ev){
+    try{
+      gotMsg=true; esOk=true; stopPollFallback();
+      handleNtfyPayload(JSON.parse(ev.data));
+    }catch(e){}
+  });
+  es.onerror = function(){
+    document.body.classList.add('stale');
+    // If SSE errors and we have no recent data, fall back to polling
+    if(!lastTs || (Date.now()/1000 - lastTs) > 6) startPollFallback();
+  };
+}
+async function fetchGistFallback(){
+  for (const h of HOSTS){
+    try{
+      const r = await fetch(h + 'live.json?t=' + Date.now(), {cache:'no-store', mode:'cors'});
+      if(!r.ok) continue;
+      const s = await r.json();
+      src='Fallback';
+      render(s);
+      return;
+    }catch(e){}
+  }
+}
+setStatus('Verbinde…', 'stale');
+connectNtfy();
+setInterval(function(){
+  if(lastTs){
+    const fresh = (Date.now()/1000 - lastTs) <= 8;
+    setStatus(ageText(lastTs), fresh?'live':'stale');
+    if(!fresh) startPollFallback();
+  }
+}, 1000);
+setInterval(function(){
+  if(!lastTs || (Date.now()/1000 - lastTs) > 10) fetchGistFallback();
+}, 20000);
+</script>
+</body></html>
