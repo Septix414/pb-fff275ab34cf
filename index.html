@@ -22,27 +22,24 @@ h1{font-size:18px;margin:0 0 4px} h2{font-size:13px;color:var(--mut);text-transf
 .row{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd)}
 .row:last-child{border-bottom:0}
 .sym{font-weight:700}.meta{color:var(--mut);font-size:11px;margin-top:2px}
-.pct{font-weight:700;font-size:15px;white-space:nowrap}
+.pct{font-weight:700;font-size:15px;white-space:nowrap;text-align:right}
 .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#21262d;border:1px solid var(--bd)}
 .pill.off{color:var(--g);border-color:#238636}.pill.on{color:var(--r);border-color:#da3633}
 .pill.tp{color:#d2a8ff;border-color:#8957e5}
+.pill.stale{color:#d29922;border-color:#9e6a03}
 .footer{color:var(--mut);font-size:11px;margin-top:16px;text-align:center}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d29922;margin-right:6px;animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .live .dot{background:var(--g)}
 .stale .dot{background:var(--r);animation:none}
 .age{font-variant-numeric:tabular-nums}
-#noscript{background:#3d1117;color:#ffb4b0;border:1px solid #da3633;border-radius:10px;padding:10px 12px;margin-bottom:12px}
 </style></head><body>
-<div class="banner">SPIELGELD / PAPER-MODUS<small>Nur Simulation. Keine echten Trades. Live ist AUS. Staged TP: 50% @ +40%, 25% @ +100%, Rest Trailing 20%.</small></div>
-<noscript><div id="noscript">JavaScript ist aus. Das Live-Dashboard braucht JS für die Zahlen.</div></noscript>
+<div class="banner">SPIELGELD / PAPER-MODUS<small>Nur Simulation. Keine echten Trades. Live ist AUS. Update ~1s · Staged TP: 50% @ +40%, 25% @ +100%, Rest Trailing 20%.</small></div>
 <h1>Solana Whale Copy-Bot</h1>
 <div class="mut" id="statusline" style="margin-bottom:12px"><span class="dot"></span><span class="age">Verbinde…</span></div>
 <div class="grid" id="kpi">
   <div class="k"><div class="l">Equity</div><div class="v mut">Verbinde…</div></div>
   <div class="k"><div class="l">PnL</div><div class="v mut">Verbinde…</div></div>
-  <div class="k"><div class="l">Cash frei</div><div class="v mut">–</div></div>
-  <div class="k"><div class="l">Offen</div><div class="v mut">–</div></div>
 </div>
 <h2>Live (echtes SOL)</h2>
 <div class="grid" id="lv">
@@ -59,11 +56,12 @@ h1{font-size:18px;margin:0 0 4px} h2{font-size:13px;color:var(--mut);text-transf
 <div class="card" id="dec"><div class="row mut">–</div></div>
 <h2>Latenz</h2>
 <div class="grid" id="lat"></div>
-<div class="footer">Read-only · Spielgeld · Push via ntfy · GitHub Pages</div>
+<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages</div>
 <script>
 const GIST = "ab4b2694299bcf128f9c6144209acc45";
-const NTFY = "paperbot-d5500391f47a3dd56032ed9125917bb2";
-const HOSTS = [
+const NTFY = "paperbot-1hz-e391e68791a8de56";
+const HOSTS = ["https://ntfy.adminforge.de", "https://ntfy.envs.net", "https://ntfy.sh"];
+const HOSTS_FALLBACK = [
   `https://gist.githubusercontent.com/Septix414/${GIST}/raw/`,
 ];
 const f=(v,n=4)=>v==null||v===''||Number.isNaN(+v)?'–':(+v).toFixed(n);
@@ -74,10 +72,12 @@ function kpi(el, items){ el.innerHTML=items.map(([l,v,c])=>`<div class="k"><div 
 function rows(el, html){ el.innerHTML = html || '<div class="row mut">Keine</div>'; }
 
 function expand(s){
-  if(!s || s.v!==1) return s;
+  if(!s) return s;
+  if(s.v!==1 && s.v!==2) return s;
   const mapPos=p=>({
     symbol:p.s, sol_in:p.in, initial_sol_in:p.iin, entry_price_usd:p.ep, now_price:p.np,
-    chg_pct:p.pct, tp_stage:p.tp, size_tier:p.tier, opened_at:p.at, realized_pnl_sol:p.rp
+    chg_pct:p.pct, pnl_sol:p.pnl, tp_stage:p.tp, size_tier:p.tier, opened_at:p.at,
+    realized_pnl_sol:p.rp, price_age_s:p.age, price_ok:p.ok
   });
   const mapClosed=p=>({symbol:p.s, pnl_sol:p.pnl, pnl_pct:p.pct, exit_reason:p.why, closed_at:p.at});
   const mapTp=p=>({symbol:p.s, ts:p.at, reason:p.why, pnl_sol:p.pnl, fraction:p.fr, chg_pct:p.pct});
@@ -92,7 +92,8 @@ function expand(s){
   });
 }
 
-let lastTs = 0, src='…', esOk=false, pollTimer=null, es=null;
+let lastTs = 0, lastPayload=null, src='…', esOk=false, pollTimer=null;
+let lastHeavy = {closed_positions:[], partial_exits:[], recent_decisions:[], latency:{}, realtime:{}};
 function ageText(ts){
   if(!ts) return 'Verbinde…';
   const a = Math.max(0, Math.round(Date.now()/1000 - ts));
@@ -110,7 +111,14 @@ function render(raw){
   if(!s || !s.ts) return;
   if(lastTs && s.ts < lastTs - 0.5) return;
   lastTs = s.ts;
-  const fresh = (Date.now()/1000 - lastTs) <= 8;
+  lastPayload = s;
+  // Keep last heavy sections if this tick omitted them
+  if(s.closed_positions && s.closed_positions.length) lastHeavy.closed_positions = s.closed_positions;
+  if(s.partial_exits && s.partial_exits.length) lastHeavy.partial_exits = s.partial_exits;
+  if(s.recent_decisions && s.recent_decisions.length) lastHeavy.recent_decisions = s.recent_decisions;
+  if(s.latency && Object.keys(s.latency).length) lastHeavy.latency = s.latency;
+  if(s.realtime && (s.realtime.subscribed!=null || s.realtime.sub!=null)) lastHeavy.realtime = s.realtime;
+  const fresh = (Date.now()/1000 - lastTs) <= 5;
   setStatus(ageText(lastTs), fresh?'live':'stale');
   const pnl = s.total_pnl_sol||0, real=s.realized_pnl_sol||0, unrl=s.unrealized_pnl_sol||0;
   const wr = s.win_rate;
@@ -130,31 +138,38 @@ function render(raw){
     <div class="k"><div class="l">Guthaben</div><div class="v">${L.sol_balance==null?'–':f(L.sol_balance)+' SOL'}</div><div class="meta">${L.public_key?(L.public_key.slice(0,4)+'…'+L.public_key.slice(-4)):'–'}</div></div>`;
   const opn = s.open_positions||[];
   document.getElementById('noc').textContent = '('+opn.length+')';
-  rows(document.getElementById('open'), opn.map(p=>`
-    <div class="row"><div><div class="sym">${p.symbol||'?'} ${p.tp_stage?`<span class="pill tp">TP${p.tp_stage}</span>`:''}</div>
+  rows(document.getElementById('open'), opn.map(p=>{
+    const age = p.price_age_s;
+    const stale = age!=null && age>3;
+    const pnlS = p.pnl_sol;
+    return `<div class="row"><div><div class="sym">${p.symbol||'?'} ${p.tp_stage?`<span class="pill tp">TP${p.tp_stage}</span>`:''}${stale?' <span class="pill stale">Preis alt</span>':''}</div>
     <div class="meta">${f(p.sol_in,4)} / ${f(p.initial_sol_in,4)} SOL · ${p.size_tier||'–'} · $${f(p.entry_price_usd,8)} → $${f(p.now_price,8)}</div>
-    <div class="meta">eröffnet ${t(p.opened_at)}${(p.realized_pnl_sol?(' · TP realisiert '+(p.realized_pnl_sol>=0?'+':'')+f(p.realized_pnl_sol)+' SOL'):'')}</div></div>
-    <div class="pct ${cl(p.chg_pct)}">${p.chg_pct==null?'–':pct(p.chg_pct)}</div></div>`).join(''));
-  rows(document.getElementById('tp'), (s.partial_exits||[]).map(p=>`
+    <div class="meta">eröffnet ${t(p.opened_at)} · Preisalter ${age==null?'–':(age.toFixed?age.toFixed(1):age)+'s'}${(p.realized_pnl_sol?(' · TP realisiert '+(p.realized_pnl_sol>=0?'+':'')+f(p.realized_pnl_sol)+' SOL'):'')}</div></div>
+    <div><div class="pct ${cl(p.chg_pct)}">${p.chg_pct==null?'–':pct(p.chg_pct)}</div>
+    <div class="meta ${cl(pnlS)}" style="text-align:right">${pnlS==null?'–':((pnlS>=0?'+':'')+f(pnlS)+' SOL')}</div></div></div>`;
+  }).join(''));
+  rows(document.getElementById('tp'), (s.partial_exits&&s.partial_exits.length?s.partial_exits:lastHeavy.partial_exits||[]).map(p=>`
     <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
     <div class="meta">${t(p.ts)} · ${p.reason||''} · ${(p.fraction!=null?(p.fraction*100).toFixed(0)+'%':'')}</div></div>
     <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
     <div class="meta ${cl(p.chg_pct)}">${pct(p.chg_pct)}</div></div></div>`).join(''));
-  rows(document.getElementById('closed'), (s.closed_positions||[]).map(p=>`
+  rows(document.getElementById('closed'), (s.closed_positions&&s.closed_positions.length?s.closed_positions:lastHeavy.closed_positions||[]).map(p=>`
     <div class="row"><div><div class="sym">${p.symbol||'?'}</div>
     <div class="meta">${t(p.closed_at)} · ${p.exit_reason||''}</div></div>
     <div style="text-align:right"><div class="pct ${cl(p.pnl_sol)}">${(p.pnl_sol>=0?'+':'')+f(p.pnl_sol)} SOL</div>
     <div class="meta ${cl(p.pnl_pct)}">${pct(p.pnl_pct)}</div></div></div>`).join(''));
-  rows(document.getElementById('dec'), (s.recent_decisions||[]).map(d=>`
+  rows(document.getElementById('dec'), (s.recent_decisions&&s.recent_decisions.length?s.recent_decisions:lastHeavy.recent_decisions||[]).map(d=>`
     <div class="row"><div><div class="sym">${d.symbol||'?'}</div>
     <div class="meta">${t(d.ts)} · ${d.stage} · ${d.action}</div>
     <div class="meta">${(d.reason||'').slice(0,100)}</div></div></div>`).join(''));
-  const la=s.latency||{}, rt=s.realtime||{}, cred=rt.credits||{};
+  const la=s.latency&&Object.keys(s.latency).length?s.latency:lastHeavy.latency||{};
+  const rt=s.realtime&&(s.realtime.subscribed!=null||s.realtime.sub!=null)?s.realtime:lastHeavy.realtime||{};
+  const cred=rt.credits||rt.cred||{};
   kpi(document.getElementById('lat'), [
     ['Erkennung Median', la.detect_median_s==null?'–':f(la.detect_median_s,1)+'s', ''],
     ['Fill Median', la.fill_median_s==null?'–':f(la.fill_median_s,1)+'s', ''],
-    ['WS Wallets', rt.subscribed!=null?rt.subscribed:'–', ''],
-    ['Helius Credits', cred.total_credits!=null?(cred.total_credits+' / '+cred.budget):'–', ''],
+    ['WS Wallets', rt.subscribed!=null?rt.subscribed:(rt.sub!=null?rt.sub:'–'), ''],
+    ['Snapshot', s.sms!=null?(f(s.sms,0)+' ms'):(s.snapshot_ms!=null?(f(s.snapshot_ms,0)+' ms'):'–'), ''],
   ]);
 }
 function handleNtfyPayload(msg){
@@ -172,25 +187,27 @@ function handleNtfyPayload(msg){
   }catch(e){}
 }
 async function pollNtfyOnce(){
-  try{
-    const r = await fetch('https://ntfy.sh/' + NTFY + '/json?poll=1&since=10s', {cache:'no-store', mode:'cors'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const txt = await r.text();
-    const lines = txt.trim().split('\n').filter(Boolean);
-    for (let i=lines.length-1;i>=0;i--){
-      try{
-        const m=JSON.parse(lines[i]);
-        if(m.event==='message'){ handleNtfyPayload(m); return true; }
-      }catch(e){}
-    }
-  }catch(e){}
+  for (const base of HOSTS){
+    try{
+      const host = base.replace(/\/$/,'');
+      const r = await fetch(host + '/' + NTFY + '/json?poll=1&since=10s', {cache:'no-store', mode:'cors'});
+      if(!r.ok) continue;
+      const txt = await r.text();
+      const lines = txt.trim().split('\n').filter(Boolean);
+      for (let i=lines.length-1;i>=0;i--){
+        try{
+          const m=JSON.parse(lines[i]);
+          if(m.event==='message'){ handleNtfyPayload(m); return true; }
+        }catch(e){}
+      }
+    }catch(e){}
+  }
   return false;
 }
 function startPollFallback(){
   if(pollTimer) return;
-  src = src==='Live' ? 'Poll' : 'Poll';
-  setStatus(lastTs ? ageText(lastTs) : 'Verbinde… (Poll)', lastTs?'stale':'stale');
-  pollTimer = setInterval(function(){ pollNtfyOnce(); }, 2000);
+  src = 'Poll';
+  pollTimer = setInterval(function(){ pollNtfyOnce(); }, 1000);
   pollNtfyOnce();
 }
 function stopPollFallback(){
@@ -198,34 +215,29 @@ function stopPollFallback(){
 }
 function connectNtfy(){
   if(!NTFY || NTFY.indexOf('paperbot-')!==0){ startPollFallback(); return; }
-  // Immediate poll so UI fills even before SSE
-  pollNtfyOnce().then(function(ok){ if(!ok && !lastTs) setStatus('Verbinde…', 'stale'); });
-  let es;
-  try{
-    es = new EventSource('https://ntfy.sh/' + NTFY + '/sse');
-  }catch(e){ startPollFallback(); return; }
-  let gotMsg=false;
-  const failTimer=setTimeout(function(){ if(!gotMsg) startPollFallback(); }, 4000);
-  es.onmessage = function(ev){
-    try{
-      gotMsg=true; esOk=true; stopPollFallback();
-      handleNtfyPayload(JSON.parse(ev.data));
-    }catch(e){}
-  };
-  es.addEventListener('message', function(ev){
-    try{
-      gotMsg=true; esOk=true; stopPollFallback();
-      handleNtfyPayload(JSON.parse(ev.data));
-    }catch(e){}
+  pollNtfyOnce();
+  let any=false;
+  HOSTS.forEach(function(base){
+    const host = base.replace(/\/$/,'');
+    let es;
+    try{ es = new EventSource(host + '/' + NTFY + '/sse'); }catch(e){ return; }
+    const onMsg=function(ev){
+      try{
+        any=true; esOk=true; stopPollFallback();
+        src='Live';
+        handleNtfyPayload(JSON.parse(ev.data));
+      }catch(e){}
+    };
+    es.onmessage = onMsg;
+    es.addEventListener('message', onMsg);
+    es.onerror = function(){
+      if(!lastTs || (Date.now()/1000 - lastTs) > 6) startPollFallback();
+    };
   });
-  es.onerror = function(){
-    document.body.classList.add('stale');
-    // If SSE errors and we have no recent data, fall back to polling
-    if(!lastTs || (Date.now()/1000 - lastTs) > 6) startPollFallback();
-  };
+  setTimeout(function(){ if(!any && !lastTs) startPollFallback(); }, 4000);
 }
 async function fetchGistFallback(){
-  for (const h of HOSTS){
+  for (const h of HOSTS_FALLBACK){
     try{
       const r = await fetch(h + 'live.json?t=' + Date.now(), {cache:'no-store', mode:'cors'});
       if(!r.ok) continue;
@@ -238,9 +250,10 @@ async function fetchGistFallback(){
 }
 setStatus('Verbinde…', 'stale');
 connectNtfy();
+// Tick the "Stand HH:MM:SS · vor Xs" clock every second even without new data
 setInterval(function(){
   if(lastTs){
-    const fresh = (Date.now()/1000 - lastTs) <= 8;
+    const fresh = (Date.now()/1000 - lastTs) <= 5;
     setStatus(ageText(lastTs), fresh?'live':'stale');
     if(!fresh) startPollFallback();
   }
