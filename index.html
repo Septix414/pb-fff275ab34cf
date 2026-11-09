@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="de"><head>
 <meta charset="utf-8">
-<meta name="pb-spa" content="spa-v4-beige2">
+<meta name="pb-spa" content="spa-v5-swarm1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#EDE4D6">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -98,14 +98,15 @@ h2 .count{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--mut
 </style></head><body>
 <div class="banner">
   <span class="tag">Spielgeld · Paper</span>
-  <h1>Solana Whale Copy-Bot</h1>
-  <small>Nur Simulation. Keine echten Trades. Live ist AUS. Update ~1s · TP gestaffelt.</small>
+  <h1>Solana Trench-Schwarm</h1>
+  <small>Nur Simulation. Keine echten Trades. Live ist AUS. 250 Sniper-Units · Update ~1s.</small>
 </div>
 <div id="reconnect" class="reconnect">Verbindung wird wiederhergestellt… <span id="reconnectAge"></span></div>
 <div class="status" id="statusline"><span class="dot" id="cdot"></span><span class="age num">Verbinde…</span></div>
 <nav class="tabs" role="tablist" aria-label="Ansichten">
   <button class="tab" role="tab" id="tab-portfolio" aria-selected="true" aria-controls="panel-portfolio">Portfolio</button>
   <button class="tab" role="tab" id="tab-wallets" aria-selected="false" aria-controls="panel-wallets">Wallets</button>
+  <button class="tab" role="tab" id="tab-swarm" aria-selected="false" aria-controls="panel-swarm">Schwarm</button>
 </nav>
 
 <section id="panel-portfolio" class="panel active" role="tabpanel" aria-labelledby="tab-portfolio">
@@ -138,7 +139,26 @@ h2 .count{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--mut
   <div class="card" id="wallets"><div class="empty">Warte auf Wallet-Daten…</div></div>
 </section>
 
-<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v4-beige2</div>
+<section id="panel-swarm" class="panel" role="tabpanel" aria-labelledby="tab-swarm">
+  <div class="grid" id="swarmKpi">
+    <div class="k"><div class="l">Units</div><div class="v mut">–</div></div>
+    <div class="k"><div class="l">Launches / min</div><div class="v mut">–</div></div>
+  </div>
+  <h2>Drawdown-Bremse</h2>
+  <div class="card" id="brakeBox"><div class="empty">–</div></div>
+  <h2>Offene Snipes <span id="snipeCount" class="count"></span></h2>
+  <div class="card" id="snipes"><div class="empty">–</div></div>
+  <h2>Top-Units</h2>
+  <div class="card" id="swarmTop"><div class="empty">Warte auf Heavy-Update…</div></div>
+  <h2>Schlechteste Units</h2>
+  <div class="card" id="swarmBot"><div class="empty">–</div></div>
+  <h2>Neue Launches</h2>
+  <div class="card" id="swarmLaunches"><div class="empty">–</div></div>
+  <h2>Team-Feed</h2>
+  <div class="card" id="teamFeed"><div class="empty">–</div></div>
+</section>
+
+<div class="footer">Read-only · Spielgeld · 1s Push · GitHub Pages · spa-v5-swarm1</div>
 <script>
 const GIST = "ab4b2694299bcf128f9c6144209acc45";
 const NTFY = "paperbot-1hz-e391e68791a8de56";
@@ -177,11 +197,12 @@ function tokenHead(sym, mint){
 
 function expand(s){
   if(!s) return s;
-  if(s.v!==1 && s.v!==2 && s.v!==3) return s;
+  if(s.v!==1 && s.v!==2 && s.v!==3 && s.v!==4) return s;
   const mapPos=p=>({
     symbol:p.s, mint:p.m, whales:p.wh?[p.wh]:[], sol_in:p.in, initial_sol_in:p.iin,
     entry_price_usd:p.ep, now_price:p.np, chg_pct:p.pct, pnl_sol:p.pnl, tp_stage:p.tp,
-    size_tier:p.tier, opened_at:p.at, realized_pnl_sol:p.rp, price_age_s:p.age, price_ok:p.ok
+    size_tier:p.tier, opened_at:p.at, realized_pnl_sol:p.rp, price_age_s:p.age, price_ok:p.ok,
+    source:p.src||'copy', unit_id:p.u
   });
   const mapClosed=p=>({symbol:p.s, mint:p.m, whales:p.wh?[p.wh]:[], pnl_sol:p.pnl, pnl_pct:p.pct, exit_reason:p.why, closed_at:p.at});
   const mapTp=p=>({symbol:p.s, mint:p.m, ts:p.at, reason:p.why, pnl_sol:p.pnl, fraction:p.fr, chg_pct:p.pct});
@@ -200,11 +221,13 @@ function expand(s){
     realtime:{subscribed:rt.sub, credits:rt.cred},
   });
   if(s.ws) out.wallet_stats=(s.ws||[]).map(mapWs);
+  if(s.sw) out.swarm=s.sw;
+  if(s.br) out.brake={on:!!s.br.on, peak:s.br.pk, size_half:!!s.br.hf, lockout:!!s.br.lo};
   return out;
 }
 
 let lastTs = 0, lastPayload=null, srcLab='…', esOk=false;
-let lastHeavy = {closed_positions:[], partial_exits:[], recent_decisions:[], latency:{}, realtime:{}, wallet_stats:[]};
+let lastHeavy = {closed_positions:[], partial_exits:[], recent_decisions:[], latency:{}, realtime:{}, wallet_stats:[], swarm_heavy:{}, team_feed:[]};
 let pollTimer=null, hostIdx=0, es=null, connecting=false;
 let lastMsgAt = 0;
 let onlyCopied = false;
@@ -307,6 +330,76 @@ function renderWallets(){
   }).join(''));
 }
 
+function unitRow(u){
+  if(!u) return '';
+  const pnl=u.pnl||u.pnl_sol||0;
+  return `<div class="row"><div style="min-width:0">
+    <div class="sym">Unit ${esc(u.id)}${u.p||u.paused?' <span class="pill stale">pause</span>':''}</div>
+    <div class="meta">${u.tr||u.trades||0} Trades · ${(u.w||u.wins||0)}W / ${(u.l||u.losses||0)}L</div>
+  </div>
+  <div class="pct ${cl(pnl)}">${(pnl>=0?'+':'')+f(pnl,3)} SOL</div></div>`;
+}
+function renderSwarm(s){
+  const sw = Object.assign({}, lastHeavy.swarm_heavy||{}, s && s.swarm || {});
+  const br = (s && s.brake) || {};
+  const n = sw.n, a = sw.a;
+  kpi(document.getElementById('swarmKpi'), [
+    ['Units aktiv', (a==null?'–':(a+' / '+(n==null?'–':n))), ''],
+    ['Launches / min', sw.lpm==null?'–':f(sw.lpm,2), ''],
+    ['Offene Snipes', sw.sn==null?'–':sw.sn, ''],
+    ['Evolutionen', sw.evo==null?'–':sw.evo, ''],
+    ['Creates gesamt', (sw.cr==null&&sw.creates==null)?'–':(sw.cr||sw.creates), ''],
+    ['Launch-WS', sw.up||sw.conn ? 'an' : 'aus', sw.up||sw.conn?'g':'r'],
+  ]);
+  const brakeEl=document.getElementById('brakeBox');
+  if(brakeEl){
+    const on=!!br.on;
+    const half=!!br.size_half;
+    const lo=!!br.lockout;
+    brakeEl.innerHTML = `<div class="wcard">
+      <div class="wtop">
+        <div>
+          <div class="sym">Status <span class="pill ${on?'on':'off'}">${on?'AN':'AUS'}</span>
+            ${half?' <span class="pill tp">Größen ×0,5</span>':''}
+            ${lo?' <span class="pill stale">kein Auto-Release</span>':''}
+          </div>
+          <div class="meta">Auslösung bei Equity ≤ 80 % vom Peak · Auto-Frei ab 60 min und ≥ 85 % Peak</div>
+          <div class="meta">Team-Freigabe: data/agent_reviews/brake_release.json</div>
+        </div>
+        <div style="text-align:right">
+          <div class="pct">${br.peak==null?'–':f(br.peak)+' SOL'}</div>
+          <div class="meta">Peak</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  const now = Date.now()/1000;
+  const openS = (sw.open_snipes && sw.open_snipes.length) ? sw.open_snipes :
+    ((s && s.open_positions)||[]).filter(p => (p.source==='snipe') || (p.size_tier||'').indexOf('snipe')===0);
+  const sc=document.getElementById('snipeCount');
+  if(sc) sc.textContent = '('+openS.length+')';
+  rows(document.getElementById('snipes'), openS.map(p=>{
+    const age = p.age_s!=null ? p.age_s : (p.opened_at ? (now-p.opened_at) : null);
+    return `<div class="row"><div style="min-width:0">
+      <div>${tokenHead(p.symbol, p.mint)} <span class="pill tier">u${esc(p.unit||p.unit_id||'?')}</span></div>
+      <div class="meta num">${f(p.sol_in,3)} SOL · Conf ${p.conf||p.confluence||'–'} · Alter ${age==null?'–':f(age,0)+'s'}</div>
+    </div>
+    <div class="pct ${cl(p.chg_pct)}">${p.chg_pct==null?'–':pct(p.chg_pct)}</div></div>`;
+  }).join(''));
+  rows(document.getElementById('swarmTop'), (sw.top||[]).map(unitRow).join(''));
+  rows(document.getElementById('swarmBot'), (sw.bot||[]).map(unitRow).join(''));
+  rows(document.getElementById('swarmLaunches'), (sw.launches||[]).map(r=>`
+    <div class="row"><div style="min-width:0">
+      <div>${tokenHead(r.symbol, r.mint)}</div>
+      <div class="meta">${esc(r.source||'')} · ${r.age_s==null?'–':f(r.age_s,0)+'s'} · ${r.buyers||0} Käufer · Liq ${r.liq==null?'–':('$'+f(r.liq,0))}</div>
+    </div></div>`).join(''));
+  const feed = (s && s.team_feed && s.team_feed.length) ? s.team_feed : (lastHeavy.team_feed||[]);
+  rows(document.getElementById('teamFeed'), feed.slice().reverse().map(ev=>`
+    <div class="row"><div style="min-width:0">
+      <div class="sym">${esc(ev.event||ev.type||'event')}</div>
+      <div class="meta">${t(ev.ts)} · ${esc(ev.reason||ev.detail||ev.type||'')}</div>
+    </div></div>`).join(''));
+}
 function render(raw){
   const s = expand(raw);
   if(!s || !s.ts) return;
@@ -325,6 +418,8 @@ function render(raw){
   if(s.latency && Object.keys(s.latency).length) lastHeavy.latency = s.latency;
   if(s.realtime && (s.realtime.subscribed!=null || s.realtime.sub!=null)) lastHeavy.realtime = s.realtime;
   if(s.wallet_stats && s.wallet_stats.length) mergeWalletStats(s.wallet_stats);
+  if(s.swarm_heavy && (s.swarm_heavy.top || s.swarm_heavy.launches || s.swarm_heavy.open_snipes)) lastHeavy.swarm_heavy = s.swarm_heavy;
+  if(s.team_feed && s.team_feed.length) lastHeavy.team_feed = s.team_feed;
   const fresh = (Date.now()/1000 - lastTs) <= 5;
   setStatus(ageText(lastTs), fresh?'live':'stale');
   const pnl = s.total_pnl_sol||0, real=s.realized_pnl_sol||0, unrl=s.unrealized_pnl_sol||0;
@@ -386,6 +481,7 @@ function render(raw){
     ['Snapshot', s.sms!=null?(f(s.sms,0)+' ms'):(s.snapshot_ms!=null?(f(s.snapshot_ms,0)+' ms'):'–'), ''],
   ]);
   if(currentTab==='wallets') renderWallets();
+  if(currentTab==='swarm') renderSwarm(s);
 }
 
 function handleNtfyPayload(msg){
@@ -484,15 +580,22 @@ function setTab(name){
   currentTab = name;
   document.getElementById('tab-portfolio').setAttribute('aria-selected', name==='portfolio'?'true':'false');
   document.getElementById('tab-wallets').setAttribute('aria-selected', name==='wallets'?'true':'false');
+  document.getElementById('tab-swarm').setAttribute('aria-selected', name==='swarm'?'true':'false');
   document.getElementById('panel-portfolio').classList.toggle('active', name==='portfolio');
   document.getElementById('panel-wallets').classList.toggle('active', name==='wallets');
+  document.getElementById('panel-swarm').classList.toggle('active', name==='swarm');
   if(name==='wallets'){
     renderWallets();
+    fetchGistFallback();
+  }
+  if(name==='swarm'){
+    renderSwarm(lastPayload||{});
     fetchGistFallback();
   }
 }
 document.getElementById('tab-portfolio').addEventListener('click', ()=>setTab('portfolio'));
 document.getElementById('tab-wallets').addEventListener('click', ()=>setTab('wallets'));
+document.getElementById('tab-swarm').addEventListener('click', ()=>setTab('swarm'));
 document.getElementById('filterCopied').addEventListener('click', function(){
   onlyCopied = !onlyCopied;
   this.classList.toggle('on', onlyCopied);
